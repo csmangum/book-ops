@@ -11,6 +11,7 @@ import {
 } from "@/components/chapters";
 import { ErrorBanner, LoadingState } from "@/components/shared";
 import { useChapterArtifact, useChapterCatalog } from "@/hooks";
+import { asArray, asRecord } from "@/lib/guards";
 
 export default function ChapterWorkbenchPage() {
   const params = useParams<{ chapterId: string }>();
@@ -23,14 +24,18 @@ export default function ChapterWorkbenchPage() {
   const styleAudit = useChapterArtifact(chapterId, "style-audit");
   const loreDelta = useChapterArtifact(chapterId, "lore-delta");
 
-  const analysisFindings = ((analysis.data as { generated_findings?: Record<string, unknown>[] })?.generated_findings ??
-    []) as Record<string, unknown>[];
-  const continuityFindings = ((continuity.data as { findings?: Record<string, unknown>[] })?.findings ??
-    []) as Record<string, unknown>[];
-  const styleFindings = ((styleAudit.data as { findings?: Record<string, unknown>[] })?.findings ??
-    []) as Record<string, unknown>[];
-  const loreProposals = ((loreDelta.data as { proposals?: Record<string, unknown>[] })?.proposals ??
-    []) as Record<string, unknown>[];
+  const analysisFindings = asArray<Record<string, unknown>>(
+    asRecord(analysis.data)?.generated_findings,
+  );
+  const continuityFindings = asArray<Record<string, unknown>>(
+    asRecord(continuity.data)?.findings,
+  );
+  const styleFindings = asArray<Record<string, unknown>>(
+    asRecord(styleAudit.data)?.findings,
+  );
+  const loreProposals = asArray<Record<string, unknown>>(
+    asRecord(loreDelta.data)?.proposals,
+  );
 
   const manuscriptText = useMemo(() => {
     if (showDiff) {

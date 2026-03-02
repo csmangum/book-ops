@@ -12,6 +12,7 @@ import {
 } from "@/components/issues";
 import { EmptyState, ErrorBanner, LoadingState } from "@/components/shared";
 import { useIssueList } from "@/hooks";
+import { asArray, asRecord } from "@/lib/guards";
 
 const defaultFilters: IssueFilterState = {
   scope: "all",
@@ -42,12 +43,12 @@ export default function IssuesPage() {
 
   const listQuery = useIssueList({
     scope: filters.scope === "all" ? undefined : filters.scope,
-    severity: filters.severity === "all" ? undefined : (filters.severity as never),
-    status: filters.status === "all" ? undefined : (filters.status as never),
+    severity: filters.severity === "all" ? undefined : filters.severity,
+    status: filters.status === "all" ? undefined : filters.status,
   });
 
   const issues = useMemo(() => {
-    const rawIssues = ((listQuery.data as { issues?: Issue[] })?.issues ?? []) as Issue[];
+    const rawIssues = asArray<Issue>(asRecord(listQuery.data)?.issues);
     const q = filters.query.trim().toLowerCase();
     if (!q) {
       return rawIssues;

@@ -6,6 +6,7 @@ import { ChapterFilters, ChapterTable, type ChapterFilterState } from "@/compone
 import { ErrorBanner, LoadingState } from "@/components/shared";
 import { useAnalyzeChapter, useChapterCatalog, useProjectArtifact } from "@/hooks";
 import type { ChapterTableRow } from "@/components/chapters/ChapterTable";
+import { asArray, asRecord } from "@/lib/guards";
 
 const defaultFilters: ChapterFilterState = {
   gate: "all",
@@ -21,8 +22,9 @@ export default function ChaptersPage() {
 
   const chapterRows = useMemo<ChapterTableRow[]>(() => {
     const base = chapters.data ?? [];
-    const issueList = ((openIssues.data as { issues?: Array<{ scope?: string; severity?: string }> })?.issues ??
-      []) as Array<{ scope?: string; severity?: string }>;
+    const issueList = asArray<{ scope?: string; severity?: string }>(
+      asRecord(openIssues.data)?.issues,
+    );
 
     return base.map((chapter) => {
       const issuesForChapter = issueList.filter(

@@ -3,11 +3,12 @@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import type { ApiIssueSeverity, ApiIssueStatus } from "@/lib/api";
 
 export type IssueFilterState = {
   scope: string;
-  severity: string;
-  status: string;
+  severity: ApiIssueSeverity | "all";
+  status: ApiIssueStatus | "all";
   query: string;
 };
 
@@ -37,7 +38,12 @@ export function IssueFilters({
         <Label>Severity</Label>
         <Select
           value={value.severity}
-          onValueChange={(severity) => onChange({ ...value, severity })}
+          onValueChange={(severity) =>
+            onChange({
+              ...value,
+              severity: severity as ApiIssueSeverity | "all",
+            })
+          }
         >
           <SelectTrigger>
             <SelectValue placeholder="Any severity" />
@@ -54,7 +60,15 @@ export function IssueFilters({
       </div>
       <div className="space-y-2">
         <Label>Status</Label>
-        <Select value={value.status} onValueChange={(status) => onChange({ ...value, status })}>
+        <Select
+          value={value.status}
+          onValueChange={(status) =>
+            onChange({
+              ...value,
+              status: status as ApiIssueStatus | "all",
+            })
+          }
+        >
           <SelectTrigger>
             <SelectValue placeholder="Any status" />
           </SelectTrigger>

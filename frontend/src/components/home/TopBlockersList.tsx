@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { SeverityBadge } from "@/components/shared/SeverityBadge";
 
-type Blocker = {
+export type Blocker = {
   id?: string;
   severity?: string;
   message?: string;

@@ -16,6 +16,15 @@ vi.mock("@/hooks", () => ({
     isLoading: false,
     error: null,
   }),
+  useIndexStatus: () => ({
+    data: {
+      file_count: 1,
+      symbolic_exists: true,
+      semantic_exists: true,
+    },
+    isLoading: false,
+    error: null,
+  }),
   useProjectArtifact: () => ({ data: { issues: [] }, isLoading: false, error: null }),
   useRunHistory: () => ({ data: [], isLoading: false, error: null }),
 }));

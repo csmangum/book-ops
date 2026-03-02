@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ErrorBanner, LoadingState } from "@/components/shared";
 import { useLoreDelta } from "@/hooks";
+import { asArray, asRecord } from "@/lib/guards";
 import type { LoreProposal } from "@/lib/lore";
 
 export default function LorePage() {
@@ -64,7 +65,9 @@ export default function LorePage() {
                 id: scope === "chapter" ? Number(chapterId) : null,
               });
 
-              const responseProposals = (result as { proposals?: LoreProposal[] }).proposals ?? [];
+              const responseProposals = asArray<LoreProposal>(
+                asRecord(result)?.proposals,
+              );
               setProposals(responseProposals);
             }}
           >

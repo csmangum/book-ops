@@ -11,6 +11,7 @@ import {
 } from "@/components/timeline";
 import { EmptyState, ErrorBanner, LoadingState } from "@/components/shared";
 import { useProjectArtifact } from "@/hooks";
+import { asArray, asRecord } from "@/lib/guards";
 
 type Marker = {
   chapter: number;
@@ -30,9 +31,7 @@ export default function TimelinePage() {
   const timelineArtifact = useProjectArtifact("timeline");
 
   const markers = useMemo(
-    () =>
-      ((timelineArtifact.data as { timeline_markers?: Marker[] })?.timeline_markers ??
-        []) as Marker[],
+    () => asArray<Marker>(asRecord(timelineArtifact.data)?.timeline_markers),
     [timelineArtifact.data],
   );
 
