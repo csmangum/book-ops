@@ -36,10 +36,14 @@ export function writeRunHistory(entries: RunHistoryEntry[]) {
     return;
   }
 
-  window.localStorage.setItem(
-    RUN_HISTORY_KEY,
-    JSON.stringify(entries.slice(0, MAX_RUN_HISTORY)),
-  );
+  try {
+    window.localStorage.setItem(
+      RUN_HISTORY_KEY,
+      JSON.stringify(entries.slice(0, MAX_RUN_HISTORY)),
+    );
+  } catch {
+    // storage disabled or quota exceeded – fail silently
+  }
 }
 
 export function addRunHistoryEntry(entry: RunHistoryEntry) {
