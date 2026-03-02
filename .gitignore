@@ -9,6 +9,7 @@ __pycache__/
 # Distribution / packaging
 .Python
 build/
+node_modules/
 develop-eggs/
 dist/
 downloads/
@@ -25,6 +26,10 @@ share/python-wheels/
 .installed.cfg
 *.egg
 MANIFEST
+
+# Keep frontend source lib files tracked.
+!frontend/src/lib/
+!frontend/src/lib/**
 
 # PyInstaller
 #  Usually these files are written by a python script from a template

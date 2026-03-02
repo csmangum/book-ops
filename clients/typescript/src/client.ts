@@ -16,6 +16,7 @@ export type LoreDeltaRequest = components["schemas"]["LoreDeltaRequest"];
 export type LoreApproveRequest = components["schemas"]["LoreApproveRequest"];
 export type LoreSyncRequest = components["schemas"]["LoreSyncRequest"];
 export type ReportBuildRequest = components["schemas"]["ReportBuildRequest"];
+export type SettingsPatchRequest = components["schemas"]["SettingsPatchRequest"];
 
 export type BookOpsHttpClient = Client<paths, "application/json">;
 
@@ -120,6 +121,38 @@ export class BookOpsApiClient {
 
   openReports(query: { scope: "chapter" | "project"; id?: number }) {
     return this.client.GET("/reports/open", { params: { query } });
+  }
+
+  listRuns() {
+    return this.client.GET("/runs");
+  }
+
+  getRun(runId: string) {
+    return this.client.GET("/runs/{runId}", {
+      params: { path: { runId } },
+    });
+  }
+
+  getChapterContent(chapterId: number) {
+    return this.client.GET("/chapters/{chapterId}/content", {
+      params: { path: { chapterId } },
+    });
+  }
+
+  getCanonGraph() {
+    return this.client.GET("/canon/graph");
+  }
+
+  getRules() {
+    return this.client.GET("/rules");
+  }
+
+  getSettings() {
+    return this.client.GET("/settings");
+  }
+
+  patchSettings(body: SettingsPatchRequest) {
+    return this.client.PATCH("/settings", { body });
   }
 
   getChapterAnalysisArtifact(chapterId: number) {
