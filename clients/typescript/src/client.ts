@@ -39,8 +39,10 @@ export class BookOpsApiClient {
     return this.client.POST("/index/rebuild");
   }
 
-  getIndexStatus() {
-    return this.client.GET("/index/status");
+  getIndexStatus(includeSymbolic?: boolean) {
+    return this.client.GET("/index/status", {
+      params: { query: { include_symbolic: includeSymbolic } },
+    });
   }
 
   buildCanon() {

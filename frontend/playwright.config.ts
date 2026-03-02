@@ -17,7 +17,7 @@ export default defineConfig({
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
   webServer: [
     {
-      command: "python3 -m uvicorn bookops.api:app --host 0.0.0.0 --port 8000",
+      command: `${process.env.PYTHON || "python3"} -m uvicorn bookops.api:app --host 0.0.0.0 --port 8000`,
       cwd: projectRoot,
       env: {
         ...process.env,

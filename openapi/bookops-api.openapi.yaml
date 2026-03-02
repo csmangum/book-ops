@@ -41,6 +41,14 @@ paths:
     get:
       operationId: getIndexStatus
       tags: [Core]
+      parameters:
+        - name: include_symbolic
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: false
+          description: Include full symbolic index entries in the response.
       responses:
         '200':
           description: Current index status.

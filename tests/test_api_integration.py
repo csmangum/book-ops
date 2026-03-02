@@ -63,7 +63,11 @@ class ApiIntegrationTests(unittest.TestCase):
         data = r.json()
         self.assertTrue(data["ok"])
         self.assertTrue(data["data"]["symbolic_exists"])
-        self.assertIn("symbolic", data["data"])
+        self.assertNotIn("symbolic", data["data"])
+
+        r = client.get("/index/status?include_symbolic=true")
+        self.assertEqual(r.status_code, 200)
+        self.assertIn("symbolic", r.json()["data"])
 
     def test_canon_build_validate_graph(self) -> None:
         client = TestClient(app)

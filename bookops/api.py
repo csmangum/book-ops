@@ -96,8 +96,11 @@ def rebuild_index() -> dict[str, Any]:
 
 
 @app.get("/index/status")
-def get_index_status() -> dict[str, Any]:
-    return _run_cli(["index", "status"])
+def get_index_status(include_symbolic: bool = Query(default=False)) -> dict[str, Any]:
+    args = ["index", "status"]
+    if include_symbolic:
+        args.append("--include-symbolic")
+    return _run_cli(args)
 
 
 @app.post("/canon/build")
