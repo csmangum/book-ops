@@ -18,6 +18,8 @@ const defaultFilters: IssueFilterState = {
   scope: "all",
   severity: "all",
   status: "all",
+  ruleId: "",
+  chapterId: "",
   query: "",
 };
 
@@ -42,7 +44,12 @@ export default function IssuesPage() {
   const [openedIssueId, setOpenedIssueId] = useState<string | null>(null);
 
   const listQuery = useIssueList({
-    scope: filters.scope === "all" ? undefined : filters.scope,
+    scope:
+      filters.chapterId.trim().length > 0
+        ? `chapter:${filters.chapterId.trim()}`
+        : filters.scope === "all"
+          ? undefined
+          : filters.scope,
     severity: filters.severity === "all" ? undefined : filters.severity,
     status: filters.status === "all" ? undefined : filters.status,
   });
@@ -50,17 +57,19 @@ export default function IssuesPage() {
   const issues = useMemo(() => {
     const rawIssues = asArray<Issue>(asRecord(listQuery.data)?.issues);
     const q = filters.query.trim().toLowerCase();
-    if (!q) {
-      return rawIssues;
-    }
+    const ruleFilter = filters.ruleId.trim().toLowerCase();
+    const chapterFilter = filters.chapterId.trim();
 
     return rawIssues.filter(
       (issue) =>
-        issue.id.toLowerCase().includes(q) ||
-        issue.rule_id.toLowerCase().includes(q) ||
-        issue.message.toLowerCase().includes(q),
+        (q.length === 0 ||
+          issue.id.toLowerCase().includes(q) ||
+          issue.rule_id.toLowerCase().includes(q) ||
+          issue.message.toLowerCase().includes(q)) &&
+        (ruleFilter.length === 0 || issue.rule_id.toLowerCase().includes(ruleFilter)) &&
+        (chapterFilter.length === 0 || issue.scope === `chapter:${chapterFilter}`),
     );
-  }, [listQuery.data, filters.query]);
+  }, [filters.chapterId, filters.query, filters.ruleId, listQuery.data]);
 
   const openedIssue = issues.find((issue) => issue.id === openedIssueId);
 

@@ -9,6 +9,8 @@ export type IssueFilterState = {
   scope: string;
   severity: ApiIssueSeverity | "all";
   status: ApiIssueStatus | "all";
+  ruleId: string;
+  chapterId: string;
   query: string;
 };
 
@@ -20,7 +22,7 @@ export function IssueFilters({
   onChange: (next: IssueFilterState) => void;
 }) {
   return (
-    <div className="grid gap-3 rounded-md border p-3 md:grid-cols-4">
+    <div className="grid gap-3 rounded-md border p-3 md:grid-cols-6">
       <div className="space-y-2">
         <Label>Scope</Label>
         <Select value={value.scope} onValueChange={(scope) => onChange({ ...value, scope })}>
@@ -80,6 +82,24 @@ export function IssueFilters({
             <SelectItem value="waived">Waived</SelectItem>
           </SelectContent>
         </Select>
+      </div>
+      <div className="space-y-2">
+        <Label>Rule</Label>
+        <Input
+          value={value.ruleId}
+          onChange={(event) => onChange({ ...value, ruleId: event.target.value })}
+          placeholder="HARD.TIMELINE..."
+        />
+      </div>
+      <div className="space-y-2">
+        <Label>Chapter</Label>
+        <Input
+          value={value.chapterId}
+          onChange={(event) =>
+            onChange({ ...value, chapterId: event.target.value.replace(/\D/g, "") })
+          }
+          placeholder="14"
+        />
       </div>
       <div className="space-y-2">
         <Label>Search</Label>

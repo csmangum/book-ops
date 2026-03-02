@@ -30,11 +30,25 @@ export default function ChaptersPage() {
       const issuesForChapter = issueList.filter(
         (issue) => issue.scope === `chapter:${chapter.chapterId}`,
       );
+      const criticalCount = issuesForChapter.filter(
+        (issue) => issue.severity === "critical",
+      ).length;
+      const highCount = issuesForChapter.filter(
+        (issue) => issue.severity === "high",
+      ).length;
+
+      const gate =
+        criticalCount > 0
+          ? "fail"
+          : highCount > 0
+            ? "pass_with_waivers"
+            : "pass";
+
       return {
         ...chapter,
-        gate: "pass_with_waivers",
-        criticalCount: issuesForChapter.filter((issue) => issue.severity === "critical").length,
-        highCount: issuesForChapter.filter((issue) => issue.severity === "high").length,
+        gate,
+        criticalCount,
+        highCount,
       };
     });
   }, [chapters.data, openIssues.data]);
