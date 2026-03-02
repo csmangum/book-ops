@@ -1,7 +1,7 @@
 type Envelope<Data> = {
   ok: boolean;
   exit_code: number;
-  data: Data;
+  data?: Data;
   stderr: string;
 };
 
@@ -30,6 +30,10 @@ export function unwrapEnvelope<Data>(
       payload.exit_code,
       payload.stderr,
     );
+  }
+
+  if (payload.data === undefined) {
+    throw new ApiEnvelopeError(fallbackMessage, payload.exit_code, payload.stderr);
   }
 
   return payload.data;

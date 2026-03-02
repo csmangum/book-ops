@@ -3,6 +3,14 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
   "scripts": {
     "generate": "openapi-typescript ../../openapi/bookops-api.openapi.yaml -o src/generated/schema.ts",
     "typecheck": "tsc --noEmit",

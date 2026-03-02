@@ -3,7 +3,11 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { queryKeys } from "@/hooks/queryKeys";
-import { apiClient, type ApiComponents } from "@/lib/api";
+import {
+  apiClient,
+  type ApiComponents,
+  type ApiPipelineData,
+} from "@/lib/api";
 import { unwrapEnvelope } from "@/lib/api-envelope";
 import { addRunHistoryEntry } from "@/lib/run-history";
 
@@ -21,7 +25,7 @@ export function usePipelineRun() {
     mutationFn: async (input: PipelineInput) => {
       if (input.scope === "chapter") {
         const response = await apiClient.runChapterPipeline(input.body);
-        const data = unwrapEnvelope(
+        const data = unwrapEnvelope<ApiPipelineData>(
           response.data,
           "Could not run chapter pipeline.",
         );
@@ -38,7 +42,10 @@ export function usePipelineRun() {
       const response = await apiClient.runProjectPipeline(
         input.body ?? { strict: false },
       );
-      const data = unwrapEnvelope(response.data, "Could not run project pipeline.");
+      const data = unwrapEnvelope<ApiPipelineData>(
+        response.data,
+        "Could not run project pipeline.",
+      );
       addRunHistoryEntry({
         id: crypto.randomUUID(),
         scope: "project",
