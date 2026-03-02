@@ -20,6 +20,7 @@ DEFAULT_CONFIG = {
         "index_dir": ".bookops/index",
         "snapshots_dir": ".bookops/snapshots",
         "issues_file": ".bookops/issues.json",
+        "run_history_file": ".bookops/runs.json",
         "canon_latest": ".bookops/canon-latest.json",
     },
     "gates": {
@@ -283,6 +284,7 @@ class RuntimeConfig:
     index_dir: Path
     snapshots_dir: Path
     issues_file: Path
+    run_history_file: Path
     canon_latest: Path
     chapters_dir: Path
     lore_dir: Path
@@ -327,6 +329,7 @@ def load_runtime_config(project_root: Path, config_path: Path | None = None, out
     index_dir = project_root / paths.get("index_dir", ".bookops/index")
     snapshots_dir = project_root / paths.get("snapshots_dir", ".bookops/snapshots")
     issues_file = project_root / paths.get("issues_file", ".bookops/issues.json")
+    run_history_file = project_root / paths.get("run_history_file", ".bookops/runs.json")
     canon_latest = project_root / paths.get("canon_latest", ".bookops/canon-latest.json")
     out = output_dir or (project_root / "reports")
 
@@ -340,6 +343,7 @@ def load_runtime_config(project_root: Path, config_path: Path | None = None, out
         index_dir=index_dir,
         snapshots_dir=snapshots_dir,
         issues_file=issues_file,
+        run_history_file=run_history_file,
         canon_latest=canon_latest,
         chapters_dir=project_root / proj.get("chapters_dir", "chapters"),
         lore_dir=project_root / proj.get("lore_dir", "lore"),

@@ -23,6 +23,11 @@ vi.mock("@/hooks", () => ({
     isLoading: false,
     error: null,
   }),
+  useChapterContent: () => ({
+    data: null,
+    isLoading: false,
+    error: null,
+  }),
 }));
 
 import ChapterWorkbenchPage from "@/app/chapters/[chapterId]/page";

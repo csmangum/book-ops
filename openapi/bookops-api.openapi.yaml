@@ -324,6 +324,92 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ReportOpenEnvelope'
+  /runs:
+    get:
+      operationId: listRuns
+      tags: [Reports]
+      responses:
+        '200':
+          description: Recorded pipeline runs.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RunsListEnvelope'
+  /runs/{runId}:
+    get:
+      operationId: getRun
+      tags: [Reports]
+      parameters:
+        - $ref: '#/components/parameters/runIdPath'
+      responses:
+        '200':
+          description: One recorded pipeline run.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RunDetailEnvelope'
+  /chapters/{chapterId}/content:
+    get:
+      operationId: getChapterContent
+      tags: [Core]
+      parameters:
+        - $ref: '#/components/parameters/chapterIdPath'
+      responses:
+        '200':
+          description: Chapter manuscript content.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChapterContentEnvelope'
+  /canon/graph:
+    get:
+      operationId: getCanonGraph
+      tags: [Core]
+      responses:
+        '200':
+          description: Canon graph nodes and edges for frontend rendering.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CanonGraphEnvelope'
+  /rules:
+    get:
+      operationId: getRules
+      tags: [Core]
+      responses:
+        '200':
+          description: Rule configuration payload.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RulesEnvelope'
+  /settings:
+    get:
+      operationId: getSettings
+      tags: [Core]
+      responses:
+        '200':
+          description: Runtime settings payload.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SettingsEnvelope'
+    patch:
+      operationId: patchSettings
+      tags: [Core]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SettingsPatchRequest'
+      responses:
+        '200':
+          description: Updated runtime settings payload.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SettingsEnvelope'
   /artifacts/chapter/{chapterId}/analysis:
     get:
       operationId: getChapterAnalysisArtifact
@@ -459,6 +545,12 @@ paths:
                 $ref: '#/components/schemas/ArtifactEnvelope'
 components:
   parameters:
+    runIdPath:
+      name: runId
+      in: path
+      required: true
+      schema:
+        type: string
     issueIdPath:
       name: issueId
       in: path
@@ -923,6 +1015,117 @@ components:
           properties:
             data:
               $ref: '#/components/schemas/ReportOpenData'
+    RunEntry:
+      type: object
+      required: [run_id, scope, gate, created_at, report_dir, decision_log_json]
+      properties:
+        run_id: { type: string }
+        scope: { type: string }
+        gate:
+          $ref: '#/components/schemas/GateStatus'
+        created_at: { type: string }
+        report_dir: { type: string }
+        decision_log_json: { type: string }
+    RunsListData:
+      type: object
+      required: [count, runs]
+      properties:
+        count: { type: integer }
+        runs:
+          type: array
+          items:
+            $ref: '#/components/schemas/RunEntry'
+    RunsListEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/EnvelopeBase'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/RunsListData'
+    RunDetailEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/EnvelopeBase'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/RunEntry'
+    ChapterContentData:
+      type: object
+      required: [chapter_id, path, title, content, line_count]
+      properties:
+        chapter_id: { type: integer }
+        path: { type: string }
+        title: { type: string }
+        content: { type: string }
+        line_count: { type: integer }
+    ChapterContentEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/EnvelopeBase'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/ChapterContentData'
+    CanonGraphNode:
+      type: object
+      required: [id, label, type]
+      properties:
+        id: { type: string }
+        label: { type: string }
+        type: { type: string }
+        path: { type: [string, 'null'] }
+    CanonGraphEdge:
+      type: object
+      required: [id, source, target]
+      properties:
+        id: { type: string }
+        source: { type: string }
+        target: { type: string }
+        relation: { type: [string, 'null'] }
+    CanonGraphData:
+      type: object
+      required: [node_count, edge_count, nodes, edges]
+      properties:
+        generated_at: { type: [string, 'null'] }
+        node_count: { type: integer }
+        edge_count: { type: integer }
+        nodes:
+          type: array
+          items:
+            $ref: '#/components/schemas/CanonGraphNode'
+        edges:
+          type: array
+          items:
+            $ref: '#/components/schemas/CanonGraphEdge'
+    CanonGraphEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/EnvelopeBase'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/CanonGraphData'
+    RulesData:
+      type: object
+      additionalProperties: true
+    RulesEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/EnvelopeBase'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/RulesData'
+    SettingsPatchRequest:
+      type: object
+      additionalProperties: true
+    SettingsData:
+      type: object
+      additionalProperties: true
+    SettingsEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/EnvelopeBase'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/SettingsData'
     ArtifactData:
       type: object
       additionalProperties: true

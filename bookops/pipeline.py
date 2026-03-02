@@ -15,6 +15,7 @@ from .reports import (
     render_project_standard_reports,
 )
 from .runlog import write_decision_log
+from .runlog import append_run_history
 from .utils import ensure_dir
 
 
@@ -46,15 +47,28 @@ def run_chapter_pipeline(config: RuntimeConfig, chapter_id: int, output_format: 
     fail_on = rules.get("policy", {}).get("gate", {}).get("fail_on_unresolved_severity", ["critical"])
     gate = evaluate_gate(chapter_issues, fail_on_severities=fail_on, strict=strict)
     render_gate_report(chapter_report_dir, gate.to_dict(), fmt=output_format)
-    write_decision_log(
+    decision_log = write_decision_log(
         chapter_report_dir,
         scope=f"chapter:{chapter_id}",
         gate=gate.to_dict(),
         analysis=analysis,
         lore_delta=lore_delta,
     )
+    run_entry = append_run_history(
+        config.run_history_file,
+        run_id=decision_log["run_id"],
+        scope=f"chapter:{chapter_id}",
+        gate=gate.to_dict(),
+        report_dir=chapter_report_dir,
+        decision_log_json=decision_log["json"],
+    )
 
-    return {"analysis": analysis, "lore_delta": lore_delta, "gate": gate.to_dict()}
+    return {
+        "analysis": analysis,
+        "lore_delta": lore_delta,
+        "gate": gate.to_dict(),
+        "run": run_entry,
+    }
 
 
 def run_project_pipeline(config: RuntimeConfig, output_format: str = "both", strict: bool = False) -> dict[str, Any]:
@@ -71,12 +85,20 @@ def run_project_pipeline(config: RuntimeConfig, output_format: str = "both", str
     fail_on = rules.get("policy", {}).get("gate", {}).get("fail_on_unresolved_severity", ["critical"])
     gate = evaluate_gate(all_issues, fail_on_severities=fail_on, strict=strict)
     render_gate_report(project_report_dir, gate.to_dict(), fmt=output_format)
-    write_decision_log(
+    decision_log = write_decision_log(
         project_report_dir,
         scope="project",
         gate=gate.to_dict(),
         analysis=analysis,
         lore_delta=None,
     )
+    run_entry = append_run_history(
+        config.run_history_file,
+        run_id=decision_log["run_id"],
+        scope="project",
+        gate=gate.to_dict(),
+        report_dir=project_report_dir,
+        decision_log_json=decision_log["json"],
+    )
 
-    return {"analysis": analysis, "gate": gate.to_dict()}
+    return {"analysis": analysis, "gate": gate.to_dict(), "run": run_entry}

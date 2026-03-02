@@ -12,15 +12,20 @@ import {
 } from "@/components/runs";
 import { EmptyState } from "@/components/shared";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useRunHistory } from "@/hooks";
+import { useRun, useRunHistory } from "@/hooks";
+import { runHistoryFromApi } from "@/lib/runs";
 
 export default function RunDetailPage() {
   const params = useParams<{ runId: string }>();
+  const runQuery = useRun(params.runId);
   const runHistory = useRunHistory();
 
   const run = useMemo(
-    () => (runHistory.data ?? []).find((item) => item.id === params.runId),
-    [params.runId, runHistory.data],
+    () =>
+      runQuery.data
+        ? runHistoryFromApi(runQuery.data)
+        : (runHistory.data ?? []).find((item) => item.id === params.runId),
+    [params.runId, runHistory.data, runQuery.data],
   );
 
   if (!run) {
@@ -37,7 +42,7 @@ export default function RunDetailPage() {
       <section>
         <h2 className="text-xl font-semibold">Run Detail</h2>
         <p className="text-sm text-muted-foreground">
-          Detailed run API support is pending backend extension.
+          Run detail from backend when available, with local fallback.
         </p>
       </section>
       <RunSummary run={run} />

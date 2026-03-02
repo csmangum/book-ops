@@ -5,8 +5,12 @@ import cytoscape from "cytoscape";
 
 export function CanonGraphCanvas({
   hasGraphData,
+  nodes = [],
+  edges = [],
 }: {
   hasGraphData: boolean;
+  nodes?: Array<{ id: string; label: string }>;
+  edges?: Array<{ id?: string; source: string; target: string }>;
 }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
 
@@ -18,9 +22,16 @@ export function CanonGraphCanvas({
     const graph = cytoscape({
       container: containerRef.current,
       elements: [
-        { data: { id: "a", label: "Entity A" } },
-        { data: { id: "b", label: "Entity B" } },
-        { data: { id: "ab", source: "a", target: "b" } },
+        ...nodes.map((node) => ({
+          data: { id: node.id, label: node.label },
+        })),
+        ...edges.map((edge, index) => ({
+          data: {
+            id: edge.id ?? `edge-${index}`,
+            source: edge.source,
+            target: edge.target,
+          },
+        })),
       ],
       style: [
         {
@@ -39,13 +50,13 @@ export function CanonGraphCanvas({
           },
         },
       ],
-      layout: { name: "grid" },
+      layout: { name: "cose" },
     });
 
     return () => {
       graph.destroy();
     };
-  }, [hasGraphData]);
+  }, [edges, hasGraphData, nodes]);
 
   return (
     <div

@@ -10,7 +10,7 @@ import {
   ManuscriptEditor,
 } from "@/components/chapters";
 import { ErrorBanner, LoadingState } from "@/components/shared";
-import { useChapterArtifact, useChapterCatalog } from "@/hooks";
+import { useChapterArtifact, useChapterCatalog, useChapterContent } from "@/hooks";
 import { asArray, asRecord } from "@/lib/guards";
 
 export default function ChapterWorkbenchPage() {
@@ -19,6 +19,7 @@ export default function ChapterWorkbenchPage() {
   const [showDiff, setShowDiff] = useState(false);
 
   const chapters = useChapterCatalog();
+  const chapterContent = useChapterContent(chapterId);
   const analysis = useChapterArtifact(chapterId, "analysis");
   const continuity = useChapterArtifact(chapterId, "continuity");
   const styleAudit = useChapterArtifact(chapterId, "style-audit");
@@ -42,18 +43,23 @@ export default function ChapterWorkbenchPage() {
       return [
         "# Diff view placeholder",
         "",
-        "No chapter content endpoint exists in current API contract.",
-        "Use this placeholder to validate workbench layout and Monaco diagnostics scaffolding.",
+        "Diff endpoint is not available in current API contract.",
+        "Showing diff placeholder scaffold.",
       ].join("\n");
+    }
+
+    const content = chapterContent.data?.content?.trim();
+    if (content) {
+      return content;
     }
 
     return [
       `# Chapter ${chapterId} manuscript placeholder`,
       "",
-      "Chapter file read API is not currently available.",
-      "Once backend provides manuscript content, this panel will load real chapter text.",
+      "Chapter content endpoint returned no data.",
+      "This placeholder is shown until manuscript content is available.",
     ].join("\n");
-  }, [chapterId, showDiff]);
+  }, [chapterContent.data?.content, chapterId, showDiff]);
 
   return (
     <div className="space-y-4">
@@ -66,6 +72,9 @@ export default function ChapterWorkbenchPage() {
 
       {analysis.isLoading ? <LoadingState label="Loading chapter artifacts..." /> : null}
       {analysis.error ? <ErrorBanner error={analysis.error} /> : null}
+      {chapterContent.error ? (
+        <ErrorBanner error={chapterContent.error} title="Chapter content unavailable" />
+      ) : null}
 
       <div className="grid gap-4 lg:grid-cols-[220px_1fr_420px]">
         <div className="space-y-3">

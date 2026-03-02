@@ -1,26 +1,38 @@
 "use client";
 
-import { EmptyState } from "@/components/shared";
+import { EmptyState, ErrorBanner, LoadingState } from "@/components/shared";
 import { RunsTable } from "@/components/runs";
-import { useRunHistory } from "@/hooks";
+import { useRunHistory, useRunsList } from "@/hooks";
+import { runHistoryFromApi } from "@/lib/runs";
 
 export default function RunsPage() {
+  const runsQuery = useRunsList();
   const runHistory = useRunHistory();
-  const runs = runHistory.data ?? [];
+  const apiRuns = runsQuery.data?.runs?.map(runHistoryFromApi) ?? [];
+  const localRuns = runHistory.data ?? [];
+  const runs = apiRuns.length > 0 ? apiRuns : localRuns;
 
   return (
     <div className="space-y-4">
       <section>
         <h2 className="text-xl font-semibold">Runs</h2>
         <p className="text-sm text-muted-foreground">
-          Run history is currently sourced from local pipeline activity.
+          Run history from backend when available, with local fallback.
         </p>
       </section>
+
+      {runsQuery.isLoading ? <LoadingState label="Loading runs..." /> : null}
+      {runsQuery.error ? (
+        <ErrorBanner
+          error={runsQuery.error}
+          title="Backend run history unavailable"
+        />
+      ) : null}
 
       {runs.length === 0 ? (
         <EmptyState
           title="No runs available"
-          description="Backend does not currently expose run listing endpoints. Trigger a pipeline run to populate local history."
+          description="Trigger a pipeline run to populate history."
         />
       ) : (
         <RunsTable runs={runs} />

@@ -12,9 +12,11 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { EmptyState, JsonViewer } from "@/components/shared";
+import { EmptyState, ErrorBanner, JsonViewer, LoadingState } from "@/components/shared";
+import { useCanonGraph } from "@/hooks";
 import { apiClient } from "@/lib/api";
 import { unwrapEnvelope } from "@/lib/api-envelope";
+import { asArray } from "@/lib/guards";
 
 export default function CanonPage() {
   const [selectedTypes, setSelectedTypes] = useState<string[]>([
@@ -26,6 +28,7 @@ export default function CanonPage() {
   ]);
   const [fromSnapshot, setFromSnapshot] = useState("");
   const [toSnapshot, setToSnapshot] = useState("");
+  const canonGraph = useCanonGraph();
 
   const buildCanon = useMutation({
     mutationFn: async () => unwrapEnvelope((await apiClient.buildCanon()).data),
@@ -92,11 +95,23 @@ export default function CanonPage() {
         }
       />
 
-      <CanonGraphCanvas hasGraphData={false} />
-      <EmptyState
-        title="Graph data unavailable"
-        description="Add a canon graph artifact endpoint (entities + edges) to populate this canvas."
+      {canonGraph.isLoading ? <LoadingState label="Loading canon graph..." /> : null}
+      {canonGraph.error ? (
+        <ErrorBanner error={canonGraph.error} title="Canon graph unavailable" />
+      ) : null}
+      <CanonGraphCanvas
+        hasGraphData={(canonGraph.data?.node_count ?? 0) > 0}
+        nodes={asArray<{ id: string; label: string }>(canonGraph.data?.nodes)}
+        edges={asArray<{ id?: string; source: string; target: string }>(
+          canonGraph.data?.edges,
+        )}
       />
+      {(canonGraph.data?.node_count ?? 0) === 0 ? (
+        <EmptyState
+          title="Graph data unavailable"
+          description="No canon graph nodes found yet. Build canon snapshot first."
+        />
+      ) : null}
 
       <div className="grid gap-4 md:grid-cols-2">
         <EntityInspector />

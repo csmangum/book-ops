@@ -15,6 +15,15 @@ from .indexing import index_status, rebuild_index
 from .issues import filter_issues, load_issue_store, update_issue_status, apply_analysis_findings, summarize_issues
 from .lore import apply_lore_proposal, approve_lore_proposal, generate_lore_delta
 from .pipeline import run_chapter_pipeline, run_project_pipeline
+from .readmodels import (
+    get_canon_graph,
+    get_chapter_content,
+    get_rules_payload,
+    get_run,
+    get_settings_payload,
+    list_runs,
+    patch_settings_payload,
+)
 from .reports import (
     open_report,
     render_analysis_reports,
@@ -58,6 +67,7 @@ def build_parser() -> argparse.ArgumentParser:
     p_canon_sub = p_canon.add_subparsers(dest="canon_cmd")
     p_canon_sub.add_parser("build", help="Build canon snapshot")
     p_canon_sub.add_parser("validate", help="Validate latest canon snapshot")
+    p_canon_sub.add_parser("graph", help="Return canon graph payload for UI")
     p_canon_diff = p_canon_sub.add_parser("diff", help="Diff canon snapshots")
     p_canon_diff.add_argument("--from", dest="from_snapshot", required=True)
     p_canon_diff.add_argument("--to", dest="to_snapshot", required=True)
@@ -70,6 +80,11 @@ def build_parser() -> argparse.ArgumentParser:
     p_chapter.add_argument("--since", default=None)
     p_analyze_project = p_analyze_sub.add_parser("project", help="Analyze full project")
     p_analyze_project.add_argument("--since", default=None, help="Git ref for changed chapter filtering")
+
+    p_chapter_ops = sub.add_parser("chapter", help="Chapter read operations")
+    p_chapter_ops_sub = p_chapter_ops.add_subparsers(dest="chapter_cmd")
+    p_chapter_content = p_chapter_ops_sub.add_parser("content", help="Read chapter manuscript content")
+    p_chapter_content.add_argument("chapter_id", type=int)
 
     p_agent = sub.add_parser("agent", help="Run or list agents")
     p_agent_sub = p_agent.add_subparsers(dest="agent_cmd")
@@ -131,6 +146,22 @@ def build_parser() -> argparse.ArgumentParser:
     p_report_open.add_argument("--scope", choices=["chapter", "project"], required=True)
     p_report_open.add_argument("--id", type=int, default=None)
 
+    p_run = sub.add_parser("run", help="List and inspect pipeline runs")
+    p_run_sub = p_run.add_subparsers(dest="run_cmd")
+    p_run_sub.add_parser("list", help="List recorded runs")
+    p_run_show = p_run_sub.add_parser("show", help="Show one recorded run")
+    p_run_show.add_argument("run_id")
+
+    p_rules = sub.add_parser("rules", help="Read rule configuration")
+    p_rules_sub = p_rules.add_subparsers(dest="rules_cmd")
+    p_rules_sub.add_parser("get", help="Read rules payload")
+
+    p_settings = sub.add_parser("settings", help="Read/update config settings")
+    p_settings_sub = p_settings.add_subparsers(dest="settings_cmd")
+    p_settings_sub.add_parser("get", help="Read settings payload")
+    p_settings_patch = p_settings_sub.add_parser("patch", help="Patch settings with JSON object")
+    p_settings_patch.add_argument("--patch-json", required=True)
+
     sub.add_parser("version", help="Show CLI and schema versions")
     return parser
 
@@ -186,10 +217,19 @@ def main(argv: list[str] | None = None) -> int:
             errors = validate_canon_payload(payload)
             _print({"valid": len(errors) == 0, "errors": errors})
             return 0 if not errors else 1
+        if args.canon_cmd == "graph":
+            _print(get_canon_graph(config))
+            return 0
         if args.canon_cmd == "diff":
             from_payload = load_snapshot((config.snapshots_dir / args.from_snapshot).resolve() if not Path(args.from_snapshot).is_absolute() else Path(args.from_snapshot))
             to_payload = load_snapshot((config.snapshots_dir / args.to_snapshot).resolve() if not Path(args.to_snapshot).is_absolute() else Path(args.to_snapshot))
             _print(diff_canon(from_payload, to_payload))
+            return 0
+        return 1
+
+    if args.command == "chapter":
+        if args.chapter_cmd == "content":
+            _print(get_chapter_content(config, args.chapter_id))
             return 0
         return 1
 
@@ -339,7 +379,13 @@ def main(argv: list[str] | None = None) -> int:
         if args.pipeline_cmd == "run":
             if args.pipeline_scope == "chapter":
                 payload = run_chapter_pipeline(config, args.chapter_id, output_format=args.format, strict=args.strict)
-                _print({"gate": payload["gate"]["status"], "scope": f"chapter:{args.chapter_id}"})
+                _print(
+                    {
+                        "gate": payload["gate"]["status"],
+                        "scope": f"chapter:{args.chapter_id}",
+                        "run_id": payload.get("run", {}).get("run_id"),
+                    }
+                )
                 if payload["gate"]["status"] == "fail":
                     return 2
                 if payload["gate"]["status"] == "pass_with_waivers":
@@ -347,7 +393,13 @@ def main(argv: list[str] | None = None) -> int:
                 return 0
             if args.pipeline_scope == "project":
                 payload = run_project_pipeline(config, output_format=args.format, strict=args.strict)
-                _print({"gate": payload["gate"]["status"], "scope": "project"})
+                _print(
+                    {
+                        "gate": payload["gate"]["status"],
+                        "scope": "project",
+                        "run_id": payload.get("run", {}).get("run_id"),
+                    }
+                )
                 if payload["gate"]["status"] == "fail":
                     return 2
                 if payload["gate"]["status"] == "pass_with_waivers":
@@ -385,6 +437,43 @@ def main(argv: list[str] | None = None) -> int:
             else:
                 out_dir = config.output_dir / "project"
             _print({"path": open_report(out_dir)})
+            return 0
+        return 1
+
+    if args.command == "run":
+        if args.run_cmd == "list":
+            runs = list_runs(config)
+            _print({"count": len(runs), "runs": runs})
+            return 0
+        if args.run_cmd == "show":
+            entry = get_run(config, args.run_id)
+            if not entry:
+                _print({"error": f"run {args.run_id} not found"})
+                return 1
+            _print(entry)
+            return 0
+        return 1
+
+    if args.command == "rules":
+        if args.rules_cmd == "get":
+            _print(get_rules_payload(config))
+            return 0
+        return 1
+
+    if args.command == "settings":
+        if args.settings_cmd == "get":
+            _print(get_settings_payload(config))
+            return 0
+        if args.settings_cmd == "patch":
+            try:
+                patch = json.loads(args.patch_json)
+            except json.JSONDecodeError:
+                print("Error: --patch-json must be valid JSON")
+                return 1
+            if not isinstance(patch, dict):
+                print("Error: --patch-json must decode to an object")
+                return 1
+            _print(patch_settings_payload(config, patch))
             return 0
         return 1
 

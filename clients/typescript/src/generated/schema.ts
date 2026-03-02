@@ -324,6 +324,102 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/runs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listRuns"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/runs/{runId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getRun"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/chapters/{chapterId}/content": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getChapterContent"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/canon/graph": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getCanonGraph"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/rules": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getRules"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getSettings"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch: operations["patchSettings"];
+        trace?: never;
+    };
     "/artifacts/chapter/{chapterId}/analysis": {
         parameters: {
             query?: never;
@@ -743,6 +839,71 @@ export interface components {
         ReportOpenEnvelope: components["schemas"]["EnvelopeBase"] & {
             data?: components["schemas"]["ReportOpenData"];
         };
+        RunEntry: {
+            run_id: string;
+            scope: string;
+            gate: components["schemas"]["GateStatus"];
+            created_at: string;
+            report_dir: string;
+            decision_log_json: string;
+        };
+        RunsListData: {
+            count: number;
+            runs: components["schemas"]["RunEntry"][];
+        };
+        RunsListEnvelope: components["schemas"]["EnvelopeBase"] & {
+            data?: components["schemas"]["RunsListData"];
+        };
+        RunDetailEnvelope: components["schemas"]["EnvelopeBase"] & {
+            data?: components["schemas"]["RunEntry"];
+        };
+        ChapterContentData: {
+            chapter_id: number;
+            path: string;
+            title: string;
+            content: string;
+            line_count: number;
+        };
+        ChapterContentEnvelope: components["schemas"]["EnvelopeBase"] & {
+            data?: components["schemas"]["ChapterContentData"];
+        };
+        CanonGraphNode: {
+            id: string;
+            label: string;
+            type: string;
+            path?: string | null;
+        };
+        CanonGraphEdge: {
+            id: string;
+            source: string;
+            target: string;
+            relation?: string | null;
+        };
+        CanonGraphData: {
+            generated_at?: string | null;
+            node_count: number;
+            edge_count: number;
+            nodes: components["schemas"]["CanonGraphNode"][];
+            edges: components["schemas"]["CanonGraphEdge"][];
+        };
+        CanonGraphEnvelope: components["schemas"]["EnvelopeBase"] & {
+            data?: components["schemas"]["CanonGraphData"];
+        };
+        RulesData: {
+            [key: string]: unknown;
+        };
+        RulesEnvelope: components["schemas"]["EnvelopeBase"] & {
+            data?: components["schemas"]["RulesData"];
+        };
+        SettingsPatchRequest: {
+            [key: string]: unknown;
+        };
+        SettingsData: {
+            [key: string]: unknown;
+        };
+        SettingsEnvelope: components["schemas"]["EnvelopeBase"] & {
+            data?: components["schemas"]["SettingsData"];
+        };
         ArtifactData: {
             [key: string]: unknown;
         };
@@ -752,6 +913,7 @@ export interface components {
     };
     responses: never;
     parameters: {
+        runIdPath: string;
         issueIdPath: string;
         chapterIdPath: number;
         statusQuery: components["schemas"]["IssueStatus"];
@@ -1225,6 +1387,154 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ReportOpenEnvelope"];
+                };
+            };
+        };
+    };
+    listRuns: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Recorded pipeline runs. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RunsListEnvelope"];
+                };
+            };
+        };
+    };
+    getRun: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                runId: components["parameters"]["runIdPath"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description One recorded pipeline run. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RunDetailEnvelope"];
+                };
+            };
+        };
+    };
+    getChapterContent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                chapterId: components["parameters"]["chapterIdPath"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Chapter manuscript content. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChapterContentEnvelope"];
+                };
+            };
+        };
+    };
+    getCanonGraph: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Canon graph nodes and edges for frontend rendering. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CanonGraphEnvelope"];
+                };
+            };
+        };
+    };
+    getRules: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Rule configuration payload. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RulesEnvelope"];
+                };
+            };
+        };
+    };
+    getSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Runtime settings payload. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SettingsEnvelope"];
+                };
+            };
+        };
+    };
+    patchSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SettingsPatchRequest"];
+            };
+        };
+        responses: {
+            /** @description Updated runtime settings payload. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SettingsEnvelope"];
                 };
             };
         };
