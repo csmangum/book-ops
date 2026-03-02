@@ -61,7 +61,14 @@ def build_parser() -> argparse.ArgumentParser:
     p_index = sub.add_parser("index", help="Build/query retrieval indexes")
     p_index_sub = p_index.add_subparsers(dest="index_cmd")
     p_index_sub.add_parser("rebuild", help="Rebuild symbolic + semantic indexes")
-    p_index_sub.add_parser("status", help="Show index status")
+    p_index_status = p_index_sub.add_parser("status", help="Show index status")
+    p_index_status.add_argument(
+        "--include-symbolic",
+        dest="include_symbolic",
+        action="store_true",
+        default=False,
+        help="Include full symbolic index entries in output",
+    )
 
     p_canon = sub.add_parser("canon", help="Build/validate/diff canonical graph")
     p_canon_sub = p_canon.add_subparsers(dest="canon_cmd")
@@ -202,7 +209,7 @@ def main(argv: list[str] | None = None) -> int:
             _print(payload)
             return 0
         if args.index_cmd == "status":
-            _print(index_status(config.index_dir))
+            _print(index_status(config.index_dir, include_symbolic=args.include_symbolic))
             return 0
         return 1
 

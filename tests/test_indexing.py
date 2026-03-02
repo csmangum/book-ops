@@ -47,11 +47,12 @@ class IndexingTests(unittest.TestCase):
             (root / "chapters" / "1_Test.md").write_text("# Chapter\n", encoding="utf-8")
             payload = rebuild_index(root, index_dir)
 
-            status_after = index_status(index_dir)
+            status_after = index_status(index_dir, include_symbolic=True)
             self.assertTrue(status_after["symbolic_exists"])
             self.assertEqual(payload["file_count"], status_after["file_count"])
             self.assertEqual(payload["corpus_hash"], status_after["corpus_hash"])
             self.assertEqual("stub", status_after["semantic_status"])
+            self.assertEqual(payload["symbolic"], status_after["symbolic"])
 
 
 if __name__ == "__main__":

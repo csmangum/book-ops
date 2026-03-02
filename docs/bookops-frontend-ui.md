@@ -2,8 +2,9 @@
 
 This document captures a practical frontend UI for a larger BookOps agentic application.
 
-> Status (Mar 2026): MVP 1.0 route set is implemented in `frontend/`, including
-> API-backed runs, chapter content loading, canon graph payloads, and rules/settings pages.
+> Status (Mar 2026): MVP 1.0 complete. All routes implemented in `frontend/`, including
+> API-backed runs, chapter content loading, chapter catalog (index status with symbolic),
+> canon graph payloads, rules/settings pages, and full Writer Ops Console.
 
 ## Product shape: Writer Ops Console
 

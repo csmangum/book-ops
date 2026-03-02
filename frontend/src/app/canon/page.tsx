@@ -53,7 +53,7 @@ export default function CanonPage() {
       <section>
         <h2 className="text-xl font-semibold">Canon Graph</h2>
         <p className="text-sm text-muted-foreground">
-          Interactive graph is scaffolded. Backend graph-read endpoint is still required.
+          Interactive entity relationship graph with filters and inspector.
         </p>
       </section>
 

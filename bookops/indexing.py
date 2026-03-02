@@ -89,7 +89,7 @@ def rebuild_index(
     return payload
 
 
-def index_status(index_dir: Path) -> dict[str, Any]:
+def index_status(index_dir: Path, include_symbolic: bool = False) -> dict[str, Any]:
     symbolic = index_dir / "symbolic.json"
     semantic = index_dir / "semantic.json"
     payload: dict[str, Any] = {
@@ -100,14 +100,15 @@ def index_status(index_dir: Path) -> dict[str, Any]:
     }
     if symbolic.exists():
         symbolic_data = load_json(symbolic, default={}) or {}
-        payload.update(
-            {
-                "index_version": symbolic_data.get("index_version"),
-                "generated_at": symbolic_data.get("generated_at"),
-                "file_count": symbolic_data.get("file_count", 0),
-                "corpus_hash": symbolic_data.get("corpus_hash", ""),
-            }
-        )
+        update: dict[str, Any] = {
+            "index_version": symbolic_data.get("index_version"),
+            "generated_at": symbolic_data.get("generated_at"),
+            "file_count": symbolic_data.get("file_count", 0),
+            "corpus_hash": symbolic_data.get("corpus_hash", ""),
+        }
+        if include_symbolic:
+            update["symbolic"] = symbolic_data.get("symbolic", [])
+        payload.update(update)
     if semantic.exists():
         semantic_data = load_json(semantic, default={}) or {}
         payload.update(

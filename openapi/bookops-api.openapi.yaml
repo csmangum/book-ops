@@ -41,6 +41,14 @@ paths:
     get:
       operationId: getIndexStatus
       tags: [Core]
+      parameters:
+        - name: include_symbolic
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: false
+          description: Include full symbolic index entries in the response.
       responses:
         '200':
           description: Current index status.
@@ -675,6 +683,10 @@ components:
         generated_at: { type: [string, 'null'] }
         file_count: { type: [integer, 'null'] }
         corpus_hash: { type: [string, 'null'] }
+        symbolic:
+          type: array
+          items: { $ref: '#/components/schemas/IndexEntry' }
+          description: Chapter/file entries when symbolic index exists
         semantic_status: { type: [string, 'null'] }
         semantic_source_file_count: { type: [integer, 'null'] }
     IndexStatusEnvelope:
