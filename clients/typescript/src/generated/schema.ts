@@ -733,6 +733,7 @@ export interface components {
         PipelineData: {
             gate: components["schemas"]["GateStatus"];
             scope: string;
+            run_id?: string | null;
         };
         PipelineEnvelope: components["schemas"]["EnvelopeBase"] & {
             data?: components["schemas"]["PipelineData"];

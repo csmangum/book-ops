@@ -11,10 +11,10 @@ export function useChapterCatalog() {
   return useQuery({
     queryKey: queryKeys.chapterCatalog,
     queryFn: async () => {
-      const response = await apiClient.rebuildIndex();
+      const response = await apiClient.getIndexStatus();
       const data = unwrapEnvelope<ApiIndexRebuildData>(
         response.data,
-        "Could not rebuild index for chapter catalog.",
+        "Could not load chapter catalog from index.",
       );
 
       return toChapterRecords(data.symbolic);

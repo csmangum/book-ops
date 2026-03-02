@@ -3,6 +3,7 @@ from __future__ import annotations
 import io
 import json
 import os
+import threading
 from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
 from typing import Any
@@ -16,6 +17,8 @@ from .utils import load_json
 
 
 app = FastAPI(title="BookOps API", version="1.0.0")
+
+_cli_lock = threading.Lock()
 
 
 def _api_context() -> tuple[Path, Path]:
@@ -46,11 +49,13 @@ def _run_cli(command_args: list[str], *, strict: bool = False) -> dict[str, Any]
         argv.append("--strict")
     argv.extend(command_args)
 
-    with redirect_stdout(stdout), redirect_stderr(stderr):
-        exit_code = cli_main(argv)
+    with _cli_lock:
+        with redirect_stdout(stdout), redirect_stderr(stderr):
+            exit_code = cli_main(argv)
 
-    stdout_text = stdout.getvalue().strip()
-    stderr_text = stderr.getvalue().strip()
+        stdout_text = stdout.getvalue().strip()
+        stderr_text = stderr.getvalue().strip()
+
     payload: Any = {}
     if stdout_text:
         try:

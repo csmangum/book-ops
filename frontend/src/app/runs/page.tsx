@@ -10,7 +10,7 @@ export default function RunsPage() {
   const runHistory = useRunHistory();
   const apiRuns = runsQuery.data?.runs?.map(runHistoryFromApi) ?? [];
   const localRuns = runHistory.data ?? [];
-  const runs = apiRuns.length > 0 ? apiRuns : localRuns;
+  const runs = runsQuery.isSuccess ? apiRuns : localRuns;
 
   return (
     <div className="space-y-4">

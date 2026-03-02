@@ -24,19 +24,19 @@ export function usePipelineRun() {
   return useMutation({
     mutationFn: async (input: PipelineInput) => {
       if (input.scope === "chapter") {
-        const response = await apiClient.runChapterPipeline(input.body);
-        const data = unwrapEnvelope<ApiPipelineData>(
-          response.data,
-          "Could not run chapter pipeline.",
-        );
-        addRunHistoryEntry({
-          id: crypto.randomUUID(),
-          scope: "chapter",
-          chapterId: input.body.chapter_id,
-          gate: data.gate,
-          createdAt: new Date().toISOString(),
-        });
-        return data;
+      const response = await apiClient.runChapterPipeline(input.body);
+      const data = unwrapEnvelope<ApiPipelineData>(
+        response.data,
+        "Could not run chapter pipeline.",
+      );
+      addRunHistoryEntry({
+        id: data.run_id ?? crypto.randomUUID(),
+        scope: "chapter",
+        chapterId: input.body.chapter_id,
+        gate: data.gate,
+        createdAt: new Date().toISOString(),
+      });
+      return data;
       }
 
       const response = await apiClient.runProjectPipeline(
@@ -47,7 +47,7 @@ export function usePipelineRun() {
         "Could not run project pipeline.",
       );
       addRunHistoryEntry({
-        id: crypto.randomUUID(),
+        id: data.run_id ?? crypto.randomUUID(),
         scope: "project",
         gate: data.gate,
         createdAt: new Date().toISOString(),
@@ -56,6 +56,7 @@ export function usePipelineRun() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.runHistory });
+      queryClient.invalidateQueries({ queryKey: queryKeys.runs });
       queryClient.invalidateQueries({ queryKey: queryKeys.issues() });
       queryClient.invalidateQueries({ queryKey: queryKeys.projectArtifact("gate") });
       queryClient.invalidateQueries({ queryKey: queryKeys.projectArtifact("open-issues") });
