@@ -18,33 +18,36 @@ export function TimelineFilters({
 }) {
   return (
     <div className="flex flex-wrap gap-6 rounded-md border p-3">
-      <label className="flex items-center gap-2 text-sm">
+      <div className="flex items-center gap-2 text-sm">
         <Checkbox
+          id="filter-chapter-markers"
           checked={value.chapterMarkers}
           onCheckedChange={(checked) =>
             onChange({ ...value, chapterMarkers: Boolean(checked) })
           }
         />
-        <Label>Chapter markers</Label>
-      </label>
-      <label className="flex items-center gap-2 text-sm">
+        <Label htmlFor="filter-chapter-markers">Chapter markers</Label>
+      </div>
+      <div className="flex items-center gap-2 text-sm">
         <Checkbox
+          id="filter-entity-events"
           checked={value.entityEvents}
           onCheckedChange={(checked) =>
             onChange({ ...value, entityEvents: Boolean(checked) })
           }
         />
-        <Label>Entity events</Label>
-      </label>
-      <label className="flex items-center gap-2 text-sm">
+        <Label htmlFor="filter-entity-events">Entity events</Label>
+      </div>
+      <div className="flex items-center gap-2 text-sm">
         <Checkbox
+          id="filter-contradictions"
           checked={value.contradictions}
           onCheckedChange={(checked) =>
             onChange({ ...value, contradictions: Boolean(checked) })
           }
         />
-        <Label>Contradictions</Label>
-      </label>
+        <Label htmlFor="filter-contradictions">Contradictions</Label>
+      </div>
     </div>
   );
 }

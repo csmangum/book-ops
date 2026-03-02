@@ -831,6 +831,9 @@ components:
           $ref: '#/components/schemas/GateStatus'
         scope:
           type: string
+        run_id:
+          type: string
+          nullable: true
     PipelineEnvelope:
       allOf:
         - $ref: '#/components/schemas/EnvelopeBase'
