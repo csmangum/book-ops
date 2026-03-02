@@ -1,0 +1,4 @@
+PyYAML
+fastapi
+uvicorn
+httpx
