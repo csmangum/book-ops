@@ -45,7 +45,7 @@ describe("useIssueList", () => {
     });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
-    expect((result.current.data as { count: number } | undefined)?.count).toBe(1);
+    expect(result.current.data?.count).toBe(1);
     expect(listIssuesMock).toHaveBeenCalledWith({ status: "open" });
   });
 });

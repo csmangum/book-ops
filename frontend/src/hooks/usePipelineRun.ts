@@ -21,10 +21,10 @@ export function usePipelineRun() {
     mutationFn: async (input: PipelineInput) => {
       if (input.scope === "chapter") {
         const response = await apiClient.runChapterPipeline(input.body);
-        const data = unwrapEnvelope(response.data, "Could not run chapter pipeline.") as {
-          gate: string;
-          scope: string;
-        };
+        const data = unwrapEnvelope(
+          response.data,
+          "Could not run chapter pipeline.",
+        );
         addRunHistoryEntry({
           id: crypto.randomUUID(),
           scope: "chapter",
@@ -38,10 +38,7 @@ export function usePipelineRun() {
       const response = await apiClient.runProjectPipeline(
         input.body ?? { strict: false },
       );
-      const data = unwrapEnvelope(response.data, "Could not run project pipeline.") as {
-        gate: string;
-        scope: string;
-      };
+      const data = unwrapEnvelope(response.data, "Could not run project pipeline.");
       addRunHistoryEntry({
         id: crypto.randomUUID(),
         scope: "project",

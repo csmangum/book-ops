@@ -5,6 +5,93 @@ type ApiEnvelope<T = Record<string, unknown>> = {
   stderr: string;
 };
 
+export type ApiVersionData = {
+  bookops_version: string;
+  rules_schema_version: number;
+  canon_schema_version: number;
+  agent_pack_version: string;
+  agent_count: number;
+};
+
+export type ApiIndexStatusData = {
+  symbolic_exists: boolean;
+  semantic_exists: boolean;
+  symbolic_path: string;
+  semantic_path: string;
+  index_version?: number | null;
+  generated_at?: string | null;
+  file_count?: number | null;
+  corpus_hash?: string | null;
+  semantic_status?: string | null;
+  semantic_source_file_count?: number | null;
+};
+
+export type ApiIndexRebuildData = {
+  index_version: number;
+  generated_at: string;
+  project_root: string;
+  file_count: number;
+  excluded_dirs: string[];
+  corpus_hash: string;
+  symbolic: ApiComponents["schemas"]["IndexEntry"][];
+};
+
+export type ApiGateData = {
+  status: ApiComponents["schemas"]["GateStatus"];
+  blocking_issue_ids: string[];
+  warning_issue_ids: string[];
+  message: string;
+};
+
+export type ApiPipelineData = {
+  gate: ApiComponents["schemas"]["GateStatus"];
+  scope: string;
+};
+
+export type ApiIssueListData = {
+  count: number;
+  issues: ApiComponents["schemas"]["Issue"][];
+};
+
+export type ApiIssueMutateData = {
+  updated?: string | null;
+  waived?: string | null;
+  issue_count: number;
+};
+
+export type ApiLoreProposal = {
+  id: string;
+  status?: string;
+  chapter?: number;
+  target_lore_file?: string;
+  reason?: string;
+  evidence?: Array<{
+    file?: string;
+    line_hint?: number;
+    excerpt?: string;
+  }>;
+};
+
+export type ApiLoreDeltaData = {
+  scope: string;
+  chapter_count_evaluated: number;
+  proposals: ApiLoreProposal[];
+};
+
+export type ApiLoreApproveData = {
+  approved: string;
+  reviewer: string;
+};
+
+export type ApiLoreSyncData = {
+  applied: string;
+  target: string;
+};
+
+export type ApiReportOpenData = {
+  path: string;
+};
+
 export type ApiComponents = {
   schemas: {
     IndexEntry: {
@@ -120,17 +207,15 @@ export class BookOpsApiClient {
   }
 
   getVersion() {
-    return this.request("/version");
+    return this.request<ApiVersionData>("/version");
   }
 
   rebuildIndex() {
-    return this.request<{
-      symbolic: ApiComponents["schemas"]["IndexEntry"][];
-    }>("/index/rebuild", { method: "POST" });
+    return this.request<ApiIndexRebuildData>("/index/rebuild", { method: "POST" });
   }
 
   getIndexStatus() {
-    return this.request("/index/status");
+    return this.request<ApiIndexStatusData>("/index/status");
   }
 
   buildCanon() {
@@ -163,28 +248,28 @@ export class BookOpsApiClient {
   }
 
   gateChapter(body: ApiComponents["schemas"]["GateChapterRequest"]) {
-    return this.request("/gate/chapter", {
+    return this.request<ApiGateData>("/gate/chapter", {
       method: "POST",
       body: JSON.stringify(body),
     });
   }
 
   gateProject(body: ApiComponents["schemas"]["GateProjectRequest"] = { strict: false }) {
-    return this.request("/gate/project", {
+    return this.request<ApiGateData>("/gate/project", {
       method: "POST",
       body: JSON.stringify(body),
     });
   }
 
   runChapterPipeline(body: ApiComponents["schemas"]["PipelineChapterRequest"]) {
-    return this.request("/pipeline/chapter", {
+    return this.request<ApiPipelineData>("/pipeline/chapter", {
       method: "POST",
       body: JSON.stringify(body),
     });
   }
 
   runProjectPipeline(body: ApiComponents["schemas"]["PipelineProjectRequest"] = { strict: false }) {
-    return this.request("/pipeline/project", {
+    return this.request<ApiPipelineData>("/pipeline/project", {
       method: "POST",
       body: JSON.stringify(body),
     });
@@ -197,46 +282,46 @@ export class BookOpsApiClient {
       scope?: string;
     } = {},
   ) {
-    return this.request(withQuery("/issues", query));
+    return this.request<ApiIssueListData>(withQuery("/issues", query));
   }
 
   updateIssue(issueId: string, body: ApiComponents["schemas"]["IssueUpdateRequest"]) {
-    return this.request(`/issues/${issueId}`, {
+    return this.request<ApiIssueMutateData>(`/issues/${issueId}`, {
       method: "PATCH",
       body: JSON.stringify(body),
     });
   }
 
   waiveIssue(issueId: string, body: ApiComponents["schemas"]["IssueWaiveRequest"]) {
-    return this.request(`/issues/${issueId}/waive`, {
+    return this.request<ApiIssueMutateData>(`/issues/${issueId}/waive`, {
       method: "POST",
       body: JSON.stringify(body),
     });
   }
 
   generateLoreDelta(body: ApiComponents["schemas"]["LoreDeltaRequest"]) {
-    return this.request("/lore/delta", {
+    return this.request<ApiLoreDeltaData>("/lore/delta", {
       method: "POST",
       body: JSON.stringify(body),
     });
   }
 
   approveLoreProposal(body: ApiComponents["schemas"]["LoreApproveRequest"]) {
-    return this.request("/lore/approve", {
+    return this.request<ApiLoreApproveData>("/lore/approve", {
       method: "POST",
       body: JSON.stringify(body),
     });
   }
 
   applyLoreProposal(body: ApiComponents["schemas"]["LoreSyncRequest"]) {
-    return this.request("/lore/sync", {
+    return this.request<ApiLoreSyncData>("/lore/sync", {
       method: "POST",
       body: JSON.stringify(body),
     });
   }
 
   openReports(query: { scope: "chapter" | "project"; id?: number }) {
-    return this.request(withQuery("/reports/open", query));
+    return this.request<ApiReportOpenData>(withQuery("/reports/open", query));
   }
 
   getChapterAnalysisArtifact(chapterId: number) {

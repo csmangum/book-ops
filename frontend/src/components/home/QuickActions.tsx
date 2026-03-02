@@ -84,11 +84,9 @@ export function QuickActions({ chapters }: { chapters: ChapterRecord[] }) {
           <Button
             disabled={openReport.isPending}
             onClick={async () => {
-              const result = (await openReport.mutateAsync({
+              const result = await openReport.mutateAsync({
                 scope: "project",
-              })) as {
-                path: string;
-              };
+              });
               setLatestReportPath(result.path);
             }}
           >
