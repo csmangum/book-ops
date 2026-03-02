@@ -52,6 +52,7 @@ class IndexingTests(unittest.TestCase):
             self.assertEqual(payload["file_count"], status_after["file_count"])
             self.assertEqual(payload["corpus_hash"], status_after["corpus_hash"])
             self.assertEqual("stub", status_after["semantic_status"])
+            self.assertEqual(payload["symbolic"], status_after["symbolic"])
 
 
 if __name__ == "__main__":

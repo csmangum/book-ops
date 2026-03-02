@@ -644,6 +644,8 @@ export interface components {
             generated_at?: string | null;
             file_count?: number | null;
             corpus_hash?: string | null;
+            /** @description Chapter/file entries when symbolic index exists */
+            symbolic?: components["schemas"]["IndexEntry"][];
             semantic_status?: string | null;
             semantic_source_file_count?: number | null;
         };

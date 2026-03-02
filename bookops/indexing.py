@@ -106,6 +106,7 @@ def index_status(index_dir: Path) -> dict[str, Any]:
                 "generated_at": symbolic_data.get("generated_at"),
                 "file_count": symbolic_data.get("file_count", 0),
                 "corpus_hash": symbolic_data.get("corpus_hash", ""),
+                "symbolic": symbolic_data.get("symbolic", []),
             }
         )
     if semantic.exists():
