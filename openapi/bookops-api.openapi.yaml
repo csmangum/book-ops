@@ -1,0 +1,935 @@
+openapi: 3.1.0
+info:
+  title: BookOps API
+  version: 1.0.0
+  description: >
+    Thin HTTP API contract that maps directly to BookOps CLI operations and report artifacts.
+servers:
+  - url: /api
+tags:
+  - name: Core
+  - name: Analyze
+  - name: Gates
+  - name: Pipeline
+  - name: Issues
+  - name: Lore
+  - name: Reports
+paths:
+  /version:
+    get:
+      operationId: getVersion
+      tags: [Core]
+      responses:
+        '200':
+          description: CLI/API version metadata.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VersionEnvelope'
+  /index/rebuild:
+    post:
+      operationId: rebuildIndex
+      tags: [Core]
+      responses:
+        '200':
+          description: Rebuilt index metadata.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IndexRebuildEnvelope'
+  /index/status:
+    get:
+      operationId: getIndexStatus
+      tags: [Core]
+      responses:
+        '200':
+          description: Current index status.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IndexStatusEnvelope'
+  /canon/build:
+    post:
+      operationId: buildCanon
+      tags: [Core]
+      responses:
+        '200':
+          description: Canon snapshot build output.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CanonBuildEnvelope'
+  /canon/validate:
+    get:
+      operationId: validateCanon
+      tags: [Core]
+      responses:
+        '200':
+          description: Canon validation results.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CanonValidateEnvelope'
+  /canon/diff:
+    post:
+      operationId: diffCanon
+      tags: [Core]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CanonDiffRequest'
+      responses:
+        '200':
+          description: Canon diff response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CanonDiffEnvelope'
+  /analyze/chapter:
+    post:
+      operationId: analyzeChapter
+      tags: [Analyze]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AnalyzeChapterRequest'
+      responses:
+        '200':
+          description: Chapter analysis summary.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AnalyzeChapterEnvelope'
+  /analyze/project:
+    post:
+      operationId: analyzeProject
+      tags: [Analyze]
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AnalyzeProjectRequest'
+      responses:
+        '200':
+          description: Project analysis summary.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AnalyzeProjectEnvelope'
+  /gate/chapter:
+    post:
+      operationId: gateChapter
+      tags: [Gates]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GateChapterRequest'
+      responses:
+        '200':
+          description: Gate result for chapter scope.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GateEnvelope'
+  /gate/project:
+    post:
+      operationId: gateProject
+      tags: [Gates]
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GateProjectRequest'
+      responses:
+        '200':
+          description: Gate result for project scope.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GateEnvelope'
+  /pipeline/chapter:
+    post:
+      operationId: runChapterPipeline
+      tags: [Pipeline]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PipelineChapterRequest'
+      responses:
+        '200':
+          description: Chapter pipeline summary.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PipelineEnvelope'
+  /pipeline/project:
+    post:
+      operationId: runProjectPipeline
+      tags: [Pipeline]
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PipelineProjectRequest'
+      responses:
+        '200':
+          description: Project pipeline summary.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PipelineEnvelope'
+  /issues:
+    get:
+      operationId: listIssues
+      tags: [Issues]
+      parameters:
+        - $ref: '#/components/parameters/statusQuery'
+        - $ref: '#/components/parameters/severityQuery'
+        - $ref: '#/components/parameters/scopeQuery'
+      responses:
+        '200':
+          description: Filtered issue list.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IssueListEnvelope'
+  /issues/{issueId}:
+    patch:
+      operationId: updateIssue
+      tags: [Issues]
+      parameters:
+        - $ref: '#/components/parameters/issueIdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/IssueUpdateRequest'
+      responses:
+        '200':
+          description: Updated issue status.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IssueMutateEnvelope'
+  /issues/{issueId}/waive:
+    post:
+      operationId: waiveIssue
+      tags: [Issues]
+      parameters:
+        - $ref: '#/components/parameters/issueIdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/IssueWaiveRequest'
+      responses:
+        '200':
+          description: Waived issue.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IssueMutateEnvelope'
+  /lore/delta:
+    post:
+      operationId: generateLoreDelta
+      tags: [Lore]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoreDeltaRequest'
+      responses:
+        '200':
+          description: Lore delta summary.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoreDeltaEnvelope'
+  /lore/approve:
+    post:
+      operationId: approveLoreProposal
+      tags: [Lore]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoreApproveRequest'
+      responses:
+        '200':
+          description: Approved lore proposal.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoreApproveEnvelope'
+  /lore/sync:
+    post:
+      operationId: applyLoreProposal
+      tags: [Lore]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoreSyncRequest'
+      responses:
+        '200':
+          description: Applied lore proposal.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoreSyncEnvelope'
+  /reports/build:
+    post:
+      operationId: buildReports
+      tags: [Reports]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReportBuildRequest'
+      responses:
+        '200':
+          description: Report build status.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReportBuildEnvelope'
+  /reports/open:
+    get:
+      operationId: openReports
+      tags: [Reports]
+      parameters:
+        - $ref: '#/components/parameters/reportScopeQuery'
+        - $ref: '#/components/parameters/reportIdQuery'
+      responses:
+        '200':
+          description: Report directory path.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReportOpenEnvelope'
+  /artifacts/chapter/{chapterId}/analysis:
+    get:
+      operationId: getChapterAnalysisArtifact
+      tags: [Reports]
+      parameters:
+        - $ref: '#/components/parameters/chapterIdPath'
+      responses:
+        '200':
+          description: Chapter analysis artifact.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ArtifactEnvelope'
+  /artifacts/chapter/{chapterId}/gate:
+    get:
+      operationId: getChapterGateArtifact
+      tags: [Reports]
+      parameters:
+        - $ref: '#/components/parameters/chapterIdPath'
+      responses:
+        '200':
+          description: Chapter gate artifact.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ArtifactEnvelope'
+  /artifacts/chapter/{chapterId}/decision-log:
+    get:
+      operationId: getChapterDecisionLogArtifact
+      tags: [Reports]
+      parameters:
+        - $ref: '#/components/parameters/chapterIdPath'
+      responses:
+        '200':
+          description: Chapter decision-log artifact.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ArtifactEnvelope'
+  /artifacts/chapter/{chapterId}/continuity:
+    get:
+      operationId: getChapterContinuityArtifact
+      tags: [Reports]
+      parameters:
+        - $ref: '#/components/parameters/chapterIdPath'
+      responses:
+        '200':
+          description: Chapter continuity artifact.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ArtifactEnvelope'
+  /artifacts/chapter/{chapterId}/style-audit:
+    get:
+      operationId: getChapterStyleAuditArtifact
+      tags: [Reports]
+      parameters:
+        - $ref: '#/components/parameters/chapterIdPath'
+      responses:
+        '200':
+          description: Chapter style-audit artifact.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ArtifactEnvelope'
+  /artifacts/chapter/{chapterId}/lore-delta:
+    get:
+      operationId: getChapterLoreDeltaArtifact
+      tags: [Reports]
+      parameters:
+        - $ref: '#/components/parameters/chapterIdPath'
+      responses:
+        '200':
+          description: Chapter lore-delta artifact.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ArtifactEnvelope'
+  /artifacts/project/gate:
+    get:
+      operationId: getProjectGateArtifact
+      tags: [Reports]
+      responses:
+        '200':
+          description: Project gate artifact.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ArtifactEnvelope'
+  /artifacts/project/open-issues:
+    get:
+      operationId: getProjectOpenIssuesArtifact
+      tags: [Reports]
+      responses:
+        '200':
+          description: Project open-issues artifact.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ArtifactEnvelope'
+  /artifacts/project/resolved-issues:
+    get:
+      operationId: getProjectResolvedIssuesArtifact
+      tags: [Reports]
+      responses:
+        '200':
+          description: Project resolved-issues artifact.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ArtifactEnvelope'
+  /artifacts/project/timeline:
+    get:
+      operationId: getProjectTimelineArtifact
+      tags: [Reports]
+      responses:
+        '200':
+          description: Project timeline-status artifact.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ArtifactEnvelope'
+  /artifacts/project/motifs:
+    get:
+      operationId: getProjectMotifsArtifact
+      tags: [Reports]
+      responses:
+        '200':
+          description: Project motif-dashboard artifact.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ArtifactEnvelope'
+components:
+  parameters:
+    issueIdPath:
+      name: issueId
+      in: path
+      required: true
+      schema:
+        type: string
+    chapterIdPath:
+      name: chapterId
+      in: path
+      required: true
+      schema:
+        type: integer
+    statusQuery:
+      name: status
+      in: query
+      required: false
+      schema:
+        $ref: '#/components/schemas/IssueStatus'
+    severityQuery:
+      name: severity
+      in: query
+      required: false
+      schema:
+        $ref: '#/components/schemas/IssueSeverity'
+    scopeQuery:
+      name: scope
+      in: query
+      required: false
+      schema:
+        type: string
+    reportScopeQuery:
+      name: scope
+      in: query
+      required: true
+      schema:
+        enum: [chapter, project]
+    reportIdQuery:
+      name: id
+      in: query
+      required: false
+      schema:
+        type: integer
+  schemas:
+    EnvelopeBase:
+      type: object
+      required: [ok, exit_code, data, stderr]
+      properties:
+        ok:
+          type: boolean
+        exit_code:
+          type: integer
+        data: {}
+        stderr:
+          type: string
+    VersionData:
+      type: object
+      required:
+        - bookops_version
+        - rules_schema_version
+        - canon_schema_version
+        - agent_pack_version
+        - agent_count
+      properties:
+        bookops_version:
+          type: string
+        rules_schema_version:
+          type: integer
+        canon_schema_version:
+          type: integer
+        agent_pack_version:
+          type: string
+        agent_count:
+          type: integer
+    VersionEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/EnvelopeBase'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/VersionData'
+    IndexEntry:
+      type: object
+      required: [path, sha256, size, line_count, modified_at]
+      properties:
+        path: { type: string }
+        sha256: { type: string }
+        size: { type: integer }
+        line_count: { type: integer }
+        modified_at: { type: number }
+    IndexRebuildData:
+      type: object
+      required: [index_version, generated_at, project_root, file_count, excluded_dirs, corpus_hash, symbolic]
+      properties:
+        index_version: { type: integer }
+        generated_at: { type: string }
+        project_root: { type: string }
+        file_count: { type: integer }
+        excluded_dirs:
+          type: array
+          items: { type: string }
+        corpus_hash: { type: string }
+        symbolic:
+          type: array
+          items:
+            $ref: '#/components/schemas/IndexEntry'
+    IndexRebuildEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/EnvelopeBase'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/IndexRebuildData'
+    IndexStatusData:
+      type: object
+      required: [symbolic_exists, semantic_exists, symbolic_path, semantic_path]
+      properties:
+        symbolic_exists: { type: boolean }
+        semantic_exists: { type: boolean }
+        symbolic_path: { type: string }
+        semantic_path: { type: string }
+        index_version: { type: [integer, 'null'] }
+        generated_at: { type: [string, 'null'] }
+        file_count: { type: [integer, 'null'] }
+        corpus_hash: { type: [string, 'null'] }
+        semantic_status: { type: [string, 'null'] }
+        semantic_source_file_count: { type: [integer, 'null'] }
+    IndexStatusEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/EnvelopeBase'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/IndexStatusData'
+    CanonBuildData:
+      type: object
+      required: [snapshot, chapter_count]
+      properties:
+        snapshot: { type: string }
+        chapter_count: { type: integer }
+    CanonBuildEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/EnvelopeBase'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/CanonBuildData'
+    CanonValidateData:
+      type: object
+      required: [valid, errors]
+      properties:
+        valid: { type: boolean }
+        errors:
+          type: array
+          items: { type: string }
+    CanonValidateEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/EnvelopeBase'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/CanonValidateData'
+    CanonDiffRequest:
+      type: object
+      required: [from_snapshot, to_snapshot]
+      properties:
+        from_snapshot: { type: string }
+        to_snapshot: { type: string }
+    CanonDiffEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/EnvelopeBase'
+        - type: object
+          properties:
+            data:
+              type: object
+              additionalProperties: true
+    AnalyzeCheck:
+      type: string
+      enum: [tense, invariants, repetition, motifs, voice]
+    AnalyzeChapterRequest:
+      type: object
+      required: [chapter_id]
+      properties:
+        chapter_id:
+          type: integer
+        checks:
+          type: array
+          items:
+            $ref: '#/components/schemas/AnalyzeCheck'
+        since:
+          type: [string, 'null']
+    AnalyzeChapterData:
+      type: object
+      required: [scope, findings, checks]
+      properties:
+        scope: { type: string }
+        findings: { type: integer }
+        checks:
+          type: array
+          items:
+            $ref: '#/components/schemas/AnalyzeCheck'
+        skipped: { type: [boolean, 'null'] }
+        reason: { type: [string, 'null'] }
+    AnalyzeChapterEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/EnvelopeBase'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/AnalyzeChapterData'
+    AnalyzeProjectRequest:
+      type: object
+      properties:
+        since:
+          type: [string, 'null']
+    AnalyzeProjectData:
+      type: object
+      required: [scope, findings, chapter_filter_count]
+      properties:
+        scope: { type: string }
+        findings: { type: integer }
+        chapter_filter_count: { type: integer }
+    AnalyzeProjectEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/EnvelopeBase'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/AnalyzeProjectData'
+    GateStatus:
+      type: string
+      enum: [pass, pass_with_waivers, fail]
+    GateData:
+      type: object
+      required: [status, blocking_issue_ids, warning_issue_ids, message]
+      properties:
+        status:
+          $ref: '#/components/schemas/GateStatus'
+        blocking_issue_ids:
+          type: array
+          items: { type: string }
+        warning_issue_ids:
+          type: array
+          items: { type: string }
+        message:
+          type: string
+    GateChapterRequest:
+      type: object
+      required: [chapter_id]
+      properties:
+        chapter_id: { type: integer }
+        strict: { type: boolean, default: false }
+    GateProjectRequest:
+      type: object
+      properties:
+        strict: { type: boolean, default: false }
+    GateEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/EnvelopeBase'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/GateData'
+    PipelineChapterRequest:
+      type: object
+      required: [chapter_id]
+      properties:
+        chapter_id: { type: integer }
+        strict: { type: boolean, default: false }
+    PipelineProjectRequest:
+      type: object
+      properties:
+        strict: { type: boolean, default: false }
+    PipelineData:
+      type: object
+      required: [gate, scope]
+      properties:
+        gate:
+          $ref: '#/components/schemas/GateStatus'
+        scope:
+          type: string
+    PipelineEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/EnvelopeBase'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/PipelineData'
+    IssueSeverity:
+      type: string
+      enum: [critical, high, medium, low, info]
+    IssueStatus:
+      type: string
+      enum: [open, in_progress, resolved, waived]
+    Evidence:
+      type: object
+      required: [file, line_start, line_end, excerpt]
+      properties:
+        file: { type: string }
+        line_start: { type: integer }
+        line_end: { type: integer }
+        excerpt: { type: string }
+    Issue:
+      type: object
+      required: [id, rule_id, severity, status, scope, message]
+      properties:
+        id: { type: string }
+        rule_id: { type: string }
+        title: { type: string }
+        severity:
+          $ref: '#/components/schemas/IssueSeverity'
+        status:
+          $ref: '#/components/schemas/IssueStatus'
+        scope: { type: string }
+        message: { type: string }
+        evidence:
+          type: array
+          items:
+            $ref: '#/components/schemas/Evidence'
+        metadata:
+          type: object
+          additionalProperties: true
+        resolution_note: { type: string }
+    IssueListData:
+      type: object
+      required: [count, issues]
+      properties:
+        count: { type: integer }
+        issues:
+          type: array
+          items:
+            $ref: '#/components/schemas/Issue'
+    IssueListEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/EnvelopeBase'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/IssueListData'
+    IssueUpdateRequest:
+      type: object
+      required: [status]
+      properties:
+        status:
+          $ref: '#/components/schemas/IssueStatus'
+        note:
+          type: string
+    IssueWaiveRequest:
+      type: object
+      required: [reason, reviewer]
+      properties:
+        reason: { type: string }
+        reviewer: { type: string }
+    IssueMutateData:
+      type: object
+      required: [issue_count]
+      properties:
+        updated: { type: [string, 'null'] }
+        waived: { type: [string, 'null'] }
+        issue_count: { type: integer }
+    IssueMutateEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/EnvelopeBase'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/IssueMutateData'
+    LoreDeltaRequest:
+      type: object
+      required: [scope]
+      properties:
+        scope:
+          type: string
+          enum: [chapter, project]
+        id:
+          type: [integer, 'null']
+        since:
+          type: [string, 'null']
+    LoreDeltaData:
+      type: object
+      required: [scope, proposals, chapter_count_evaluated]
+      properties:
+        scope: { type: string }
+        proposals: { type: integer }
+        chapter_count_evaluated: { type: integer }
+    LoreDeltaEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/EnvelopeBase'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/LoreDeltaData'
+    LoreApproveRequest:
+      type: object
+      required: [proposal, reviewer]
+      properties:
+        proposal: { type: string }
+        reviewer: { type: string }
+        note: { type: string }
+    LoreApproveData:
+      type: object
+      required: [approved, reviewer]
+      properties:
+        approved: { type: string }
+        reviewer: { type: string }
+    LoreApproveEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/EnvelopeBase'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/LoreApproveData'
+    LoreSyncRequest:
+      type: object
+      required: [proposal, apply]
+      properties:
+        proposal: { type: string }
+        apply: { type: boolean }
+    LoreSyncData:
+      type: object
+      required: [applied, target]
+      properties:
+        applied: { type: string }
+        target: { type: string }
+    LoreSyncEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/EnvelopeBase'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/LoreSyncData'
+    ReportBuildRequest:
+      type: object
+      required: [scope]
+      properties:
+        scope:
+          type: string
+          enum: [chapter, project]
+        id:
+          type: [integer, 'null']
+    ReportBuildData:
+      type: object
+      required: [report_dir, top_blockers]
+      properties:
+        report_dir: { type: string }
+        top_blockers: { type: integer }
+    ReportBuildEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/EnvelopeBase'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/ReportBuildData'
+    ReportOpenData:
+      type: object
+      required: [path]
+      properties:
+        path: { type: string }
+    ReportOpenEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/EnvelopeBase'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/ReportOpenData'
+    ArtifactData:
+      type: object
+      additionalProperties: true
+    ArtifactEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/EnvelopeBase'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/ArtifactData'

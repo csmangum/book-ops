@@ -1,0 +1,253 @@
+version: 1
+policy:
+  precedence:
+    manuscript_over_lore: true
+  gate:
+    fail_on_unresolved_severity:
+    - critical
+    allow_waivers_for:
+    - high
+    - medium
+    - low
+    strict_mode_promotes:
+      warning_to_fail: true
+rules:
+- id: HARD.POV.LOCK
+  kind: hard
+  severity: critical
+  scope: chapter
+  detector: pov_lock
+  params:
+    allowed_pov:
+    - close_third_harry
+    max_violations: 0
+  message: POV lock violated.
+  gate_behavior: fail
+  waiver_allowed: false
+- id: HARD.TENSE.CONSISTENCY
+  kind: hard
+  severity: high
+  scope: chapter
+  detector: tense_consistency
+  params:
+    primary_tense: past
+    max_violations: 2
+  message: Narrative tense drift exceeds threshold.
+  gate_behavior: fail
+  waiver_allowed: true
+- id: HARD.TIMELINE.ANCHORS
+  kind: hard
+  severity: critical
+  scope: project
+  detector: timeline_anchor_check
+  params:
+    require_canonical_match: true
+  message: Absolute timeline anchor contradiction detected.
+  gate_behavior: fail
+  waiver_allowed: false
+- id: HARD.TIMELINE.DAY_SEQUENCE
+  kind: hard
+  severity: high
+  scope: project
+  detector: chapter_day_sequence
+  params:
+    max_out_of_order_events: 0
+  message: Chapter day sequence is incoherent.
+  gate_behavior: fail
+  waiver_allowed: true
+- id: HARD.STATE.OBJECT_TRANSITIONS
+  kind: hard
+  severity: critical
+  scope: project
+  detector: object_state_tracker
+  params:
+    tracked_objects:
+    - blessed_round
+    - webley
+    - key_mobius
+    - dead_mans_switch
+    allow_impossible_transitions: false
+  message: Impossible state transition detected for tracked object.
+  gate_behavior: fail
+  waiver_allowed: false
+- id: HARD.CHARACTER.INVARIANTS
+  kind: hard
+  severity: critical
+  scope: chapter
+  detector: character_invariants
+  params:
+    invariants:
+    - harry_no_digital_usage
+    - olive_has_scene_agency
+  message: Character invariant violation.
+  gate_behavior: fail
+  waiver_allowed: false
+- id: HARD.PRECEDENCE.STORY_OVER_LORE
+  kind: hard
+  severity: critical
+  scope: lore_sync
+  detector: precedence_enforcer
+  params:
+    manuscript_over_lore: true
+  message: Lore patch attempts to override manuscript truth.
+  gate_behavior: fail
+  waiver_allowed: false
+- id: HARD.ENTITY.IDENTITY
+  kind: hard
+  severity: high
+  scope: project
+  detector: entity_identity_check
+  params:
+    disallow_alias_collision: true
+    disallow_role_conflicts: true
+  message: Entity identity/role conflict detected.
+  gate_behavior: fail
+  waiver_allowed: true
+- id: HARD.CAUSAL.PRECONDITIONS
+  kind: hard
+  severity: high
+  scope: chapter
+  detector: causal_preconditions
+  params:
+    require_declared_preconditions: true
+  message: Event appears without required preconditions.
+  gate_behavior: fail
+  waiver_allowed: true
+- id: HARD.ISSUE.CRITICAL_OPEN
+  kind: hard
+  severity: critical
+  scope: gate
+  detector: open_issue_guard
+  params:
+    block_if_open_severity_at_or_above: critical
+  message: Unresolved critical issues remain.
+  gate_behavior: fail
+  waiver_allowed: false
+- id: SOFT.REPETITION.PHRASE_FAMILY
+  kind: soft
+  severity: medium
+  scope: chapter
+  detector: phrase_family_density
+  params:
+    families:
+    - not_yet
+    - the_way_construction
+    - warm_warmth
+    warn_threshold: 6
+    high_threshold: 10
+  message: Phrase-family repetition exceeds target.
+  gate_behavior: warn
+  waiver_allowed: true
+- id: SOFT.REPETITION.NEAR_VERBATIM
+  kind: soft
+  severity: high
+  scope: project
+  detector: near_verbatim_repeat
+  params:
+    similarity_threshold: 0.9
+    min_tokens: 10
+  message: Near-verbatim repeat detected across chapters.
+  gate_behavior: warn
+  waiver_allowed: true
+- id: SOFT.MOTIF.DENSITY_BALANCE
+  kind: soft
+  severity: medium
+  scope: project
+  detector: motif_density
+  params:
+    motifs:
+      copper:
+        warn_per_chapter: 8
+      chrome:
+        warn_per_chapter: 8
+      orchids:
+        warn_per_chapter: 7
+    cluster_window_chapters: 3
+  message: Motif density/cluster imbalance detected.
+  gate_behavior: warn
+  waiver_allowed: true
+- id: SOFT.STYLE.STRUCTURE_OVERUSE
+  kind: soft
+  severity: medium
+  scope: chapter
+  detector: structure_overuse
+  params:
+    patterns:
+    - not_x_not_y_z
+    - single_sentence_paragraph
+    warn_threshold: 8
+  message: Repeated structural pattern overuse.
+  gate_behavior: warn
+  waiver_allowed: true
+- id: SOFT.CHARACTER.TAG_STACKING
+  kind: soft
+  severity: low
+  scope: chapter
+  detector: descriptor_stack
+  params:
+    stacks:
+      olive:
+      - gray_green_eyes
+      - paint_on_hands
+      - galaxies
+    max_stack_occurrences: 1
+  message: Character descriptor stack overused.
+  gate_behavior: warn
+  waiver_allowed: true
+- id: SOFT.DIALOGUE.VOICE_DRIFT
+  kind: soft
+  severity: medium
+  scope: chapter
+  detector: dialogue_voice_profile
+  params:
+    drift_threshold: 0.35
+    min_lines_for_eval: 8
+  message: Dialogue voice drift risk detected.
+  gate_behavior: warn
+  waiver_allowed: true
+- id: SOFT.CHARACTER.AGENCY_DRIFT
+  kind: soft
+  severity: high
+  scope: chapter
+  detector: agency_heuristic
+  params:
+    target_characters:
+    - olive
+    max_passive_key_beats: 1
+  message: Character agency appears weaker than target.
+  gate_behavior: warn
+  waiver_allowed: true
+- id: SOFT.EXPOSITION.LOAD
+  kind: soft
+  severity: medium
+  scope: chapter
+  detector: exposition_action_ratio
+  params:
+    warn_ratio: 1.8
+    high_ratio: 2.5
+    min_window_paragraphs: 6
+  message: Exposition-heavy section detected.
+  gate_behavior: warn
+  waiver_allowed: true
+- id: SOFT.SENSORY.SATURATION
+  kind: soft
+  severity: low
+  scope: chapter
+  detector: sensory_density
+  params:
+    warn_threshold_per_paragraph: 5
+    max_consecutive_saturated_paragraphs: 3
+  message: Sensory detail saturation may affect clarity/pacing.
+  gate_behavior: warn
+  waiver_allowed: true
+- id: SOFT.ALERT.DEDUP
+  kind: soft
+  severity: low
+  scope: report
+  detector: alert_deduplication
+  params:
+    dedupe_by_root_cause: true
+    max_low_priority_items_after_dedupe: 25
+  message: Alert volume deduplicated for report usability.
+  gate_behavior: info
+  waiver_allowed: true
