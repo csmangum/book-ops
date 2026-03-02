@@ -40,6 +40,20 @@ cp .env.example .env.local
 npm run dev
 ```
 
+## Testing
+
+```bash
+# Backend unit + integration tests (pytest)
+pip install -r requirements-bookops.txt
+pytest tests/ -v
+
+# Frontend unit tests (Vitest)
+cd frontend && npm run test
+
+# E2E tests (Playwright; starts backend + frontend)
+cd frontend && npm run test:e2e
+```
+
 ## Useful docs
 
 - `docs/bookops-operations-runbook.md`
