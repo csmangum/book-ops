@@ -10,7 +10,7 @@ export function useIndexStatus() {
   return useQuery({
     queryKey: queryKeys.indexStatus,
     queryFn: async () => {
-      const response = await apiClient.getIndexStatus();
+      const response = await apiClient.getIndexStatus(true);
       return unwrapEnvelope(response.data, "Could not load index status.");
     },
   });

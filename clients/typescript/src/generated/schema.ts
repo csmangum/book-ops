@@ -973,7 +973,10 @@ export interface operations {
     };
     getIndexStatus: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Include full symbolic index entries in the response. */
+                include_symbolic?: boolean;
+            };
             header?: never;
             path?: never;
             cookie?: never;
