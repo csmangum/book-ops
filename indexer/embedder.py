@@ -25,7 +25,7 @@ from .parser import TextUnit, parse_all_chapters, build_act_units
 INDEX_DIR = Path(__file__).resolve().parent.parent / ".book_index"
 MODEL_NAME = "all-mpnet-base-v2"
 
-INDEX_LEVELS = ("sentence", "paragraph", "beat", "scene", "chapter", "act")
+INDEX_LEVELS = ("sentence", "paragraph", "scene", "chapter", "act")
 
 
 def _truncate_for_embedding(text: str, max_chars: int = 1500) -> str:
@@ -65,7 +65,6 @@ def _content_hash(units: list[TextUnit]) -> str:
             u.act,
             str(u.chapter_num),
             str(u.scene_idx),
-            str(u.beat_idx),
             str(u.paragraph_idx),
             str(u.sentence_idx),
         ):
@@ -201,7 +200,7 @@ class BookIndex:
 
         Args:
             text: The query string.
-            level: One of "sentence", "paragraph", "beat", "scene", "chapter", "act".
+            level: One of "sentence", "paragraph", "scene", "chapter", "act".
             n_results: Number of results to return.
             where: Optional ChromaDB metadata filter, e.g. {"act": "Act I – The Hire"}
                    or {"chapter_num": 7}.
@@ -247,7 +246,7 @@ class BookIndex:
 
         Args:
             text: The query string.
-            level: One of "sentence", "paragraph", "beat", "scene", "chapter", "act".
+            level: One of "sentence", "paragraph", "scene", "chapter", "act".
             n_results: Number of results to return.
             where: Optional ChromaDB metadata filter (applied to semantic results;
                    BM25 results are filtered post-merge).
@@ -343,10 +342,9 @@ class BookIndex:
         within those chapters.
         """
         HIERARCHY: dict[str, list[str]] = {
-            "act": ["chapter", "scene", "beat", "paragraph", "sentence"],
-            "chapter": ["scene", "beat", "paragraph", "sentence"],
-            "scene": ["beat", "paragraph", "sentence"],
-            "beat": ["paragraph", "sentence"],
+            "act": ["chapter", "scene", "paragraph", "sentence"],
+            "chapter": ["scene", "paragraph", "sentence"],
+            "scene": ["paragraph", "sentence"],
             "paragraph": ["sentence"],
         }
         valid_drill = HIERARCHY.get(top_level, [])
@@ -369,12 +367,6 @@ class BookIndex:
                 where_filter = {
                     "chapter_num": meta["chapter_num"],
                     "scene_idx": meta["scene_idx"],
-                }
-            elif top_level == "beat":
-                where_filter = {
-                    "chapter_num": meta["chapter_num"],
-                    "scene_idx": meta["scene_idx"],
-                    "beat_idx": meta["beat_idx"],
                 }
             elif top_level == "paragraph":
                 where_filter = {

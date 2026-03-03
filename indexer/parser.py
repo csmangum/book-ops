@@ -1,7 +1,7 @@
 """
 Multi-level manuscript parser.
 
-Splits the novel into a hierarchy: acts > chapters > scenes > beats > paragraphs > sentences.
+Splits the novel into a hierarchy: acts > chapters > scenes > paragraphs > sentences.
 Each unit carries metadata about its position in the hierarchy.
 """
 
@@ -13,7 +13,7 @@ from pathlib import Path
 
 import nltk
 
-from .book_config import BOOK_ACT_RANGES, get_act_map
+from .book_config import get_act_map
 
 CHAPTER_DIR = Path(__file__).resolve().parent.parent / "chapters"
 
@@ -29,26 +29,17 @@ ACT_MAP: dict[int, str] = {
     ch: act for act, (start, end) in ACT_CHAPTER_RANGES.items() for ch in range(start, end + 1)
 }
 
-# Heuristic cues for beat boundaries (topic/location shifts)
-BEAT_BOUNDARY_CUES = re.compile(
-    r"^(?:Meanwhile|Later|The next (?:morning|day)|Suddenly|At that moment|"
-    r"Just then|After a while|So(?:,)?\s|Then(?:,)?\s|Soon(?:,)?\s|"
-    r"Presently|Before long|A moment later|Some time (?:passed|later))",
-    re.IGNORECASE,
-)
-
 
 @dataclass
 class TextUnit:
     """A piece of text at any level of the hierarchy."""
 
-    level: str  # "sentence", "paragraph", "beat", "scene", "chapter", "act"
+    level: str  # "sentence", "paragraph", "scene", "chapter", "act"
     text: str
     chapter_num: int
     chapter_title: str
     act: str
     scene_idx: int = 0  # 0-based within chapter
-    beat_idx: int = 0  # 0-based within chapter (narrative beats)
     paragraph_idx: int = 0  # 0-based within scene
     sentence_idx: int = 0  # 0-based within paragraph
     char_offset: int = 0
@@ -59,10 +50,8 @@ class TextUnit:
         if self.level == "act":
             return f"act_{self.act.lower().replace(' ', '_').replace('–', '')}"
         parts = [f"ch{self.chapter_num}"]
-        if self.level in ("scene", "beat", "paragraph", "sentence"):
+        if self.level in ("scene", "paragraph", "sentence"):
             parts.append(f"sc{self.scene_idx}")
-        if self.level == "beat":
-            parts.append(f"b{self.beat_idx}")
         if self.level in ("paragraph", "sentence"):
             parts.append(f"p{self.paragraph_idx}")
         if self.level == "sentence":
@@ -77,7 +66,6 @@ class TextUnit:
             "chapter_num": self.chapter_num,
             "chapter_title": self.chapter_title,
             "scene_idx": self.scene_idx,
-            "beat_idx": self.beat_idx,
             "paragraph_idx": self.paragraph_idx,
             "sentence_idx": self.sentence_idx,
             "source_file": self.source_file,
@@ -122,37 +110,6 @@ def _split_paragraphs(scene_text: str) -> list[str]:
     """Split on double newlines (standard paragraph breaks)."""
     parts = re.split(r"\n\s*\n", scene_text)
     return [p.strip() for p in parts if p.strip()]
-
-
-def _split_beats(paragraphs: list[str]) -> list[list[str]]:
-    """
-    Group paragraphs into beats (3-8 contiguous paragraphs per beat).
-    Splits on topic-shift cues when present; otherwise uses ~5 paragraphs per beat.
-    """
-    if not paragraphs:
-        return []
-    beats: list[list[str]] = []
-    current: list[str] = []
-    target_min, target_max = 3, 8
-
-    for i, para in enumerate(paragraphs):
-        current.append(para)
-        # Start new beat on cue (except first para of chapter) or when at target_max
-        at_cue = i > 0 and BEAT_BOUNDARY_CUES.match(para.strip())
-        at_max = len(current) >= target_max
-        if at_cue or at_max:
-            if len(current) >= target_min or at_cue:
-                beats.append(current)
-                current = []
-
-    if current:
-        # Merge small tail into last beat or keep as new beat
-        if beats and len(current) < target_min and len(beats[-1]) + len(current) <= target_max:
-            beats[-1].extend(current)
-        else:
-            beats.append(current)
-
-    return beats
 
 
 def _ensure_nltk_punkt() -> None:
@@ -214,51 +171,33 @@ def parse_chapter(
 
     for scene_idx, scene_text in enumerate(scenes):
         paragraphs = _split_paragraphs(scene_text)
-        beats = _split_beats(paragraphs)
 
-        para_idx = 0
-        for beat_idx, beat_paras in enumerate(beats):
-            beat_text = "\n\n".join(beat_paras)
-            units.append(TextUnit(
-                level="beat",
-                text=beat_text,
-                chapter_num=chapter_num,
-                chapter_title=chapter_title,
-                act=act,
-                scene_idx=scene_idx,
-                beat_idx=beat_idx,
-                source_file=filename,
-            ))
+        for para_idx, para_text in enumerate(paragraphs):
+            sentences = _split_sentences(para_text)
 
-            for para_text in beat_paras:
-                sentences = _split_sentences(para_text)
-
-                for sent_idx, sent in enumerate(sentences):
-                    units.append(TextUnit(
-                        level="sentence",
-                        text=sent,
-                        chapter_num=chapter_num,
-                        chapter_title=chapter_title,
-                        act=act,
-                        scene_idx=scene_idx,
-                        beat_idx=beat_idx,
-                        paragraph_idx=para_idx,
-                        sentence_idx=sent_idx,
-                        source_file=filename,
-                    ))
-
+            for sent_idx, sent in enumerate(sentences):
                 units.append(TextUnit(
-                    level="paragraph",
-                    text=para_text,
+                    level="sentence",
+                    text=sent,
                     chapter_num=chapter_num,
                     chapter_title=chapter_title,
                     act=act,
                     scene_idx=scene_idx,
-                    beat_idx=beat_idx,
                     paragraph_idx=para_idx,
+                    sentence_idx=sent_idx,
                     source_file=filename,
                 ))
-                para_idx += 1
+
+            units.append(TextUnit(
+                level="paragraph",
+                text=para_text,
+                chapter_num=chapter_num,
+                chapter_title=chapter_title,
+                act=act,
+                scene_idx=scene_idx,
+                paragraph_idx=para_idx,
+                source_file=filename,
+            ))
 
         units.append(TextUnit(
             level="scene",

@@ -28,7 +28,7 @@ from rich import box
 
 console = Console()
 
-LEVELS = ["sentence", "paragraph", "beat", "scene", "chapter", "act"]
+LEVELS = ["sentence", "paragraph", "scene", "chapter", "act"]
 
 
 def _ensure_index(idx) -> bool:
@@ -173,8 +173,6 @@ def cmd_search(args: argparse.Namespace) -> None:
             f"[{i}] Ch {meta['chapter_num']}: {meta['chapter_title']} "
             f"| {meta['act']} | scene {meta['scene_idx']}"
         )
-        if args.level == "beat":
-            header += f" | beat {meta.get('beat_idx', 0)}"
         if args.level in ("paragraph", "sentence"):
             header += f" | para {meta['paragraph_idx']}"
         if args.level == "sentence":
@@ -261,7 +259,6 @@ def cmd_stats(args: argparse.Namespace) -> None:
     descriptions = {
         "sentence": "Precise fact / continuity lookups",
         "paragraph": "Sensory beats, dialogue, action moments",
-        "beat": "Narrative beats (3-8 paragraphs, topic/location shifts)",
         "scene": "Scene-level narrative segments (split on ---)",
         "chapter": "Thematic / structural queries",
         "act": "Arc-level story structure",
