@@ -300,8 +300,8 @@ def main(argv: list[str] | None = None) -> int:
             _print(list_agents())
             return 0
         if args.agent_cmd == "run":
-            result = run_agent(args.agent_name, scope=args.scope, scope_id=args.id)
-            _print(result.__dict__)
+            result = run_agent(args.agent_name, scope=args.scope, scope_id=args.id, config=config)
+            _print(result.to_dict())
             return 0
         return 1
 

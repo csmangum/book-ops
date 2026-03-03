@@ -8,6 +8,7 @@ servers:
   - url: /api
 tags:
   - name: Core
+  - name: Agents
   - name: Analyze
   - name: Gates
   - name: Pipeline
@@ -26,6 +27,34 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/VersionEnvelope'
+  /agents:
+    get:
+      operationId: listAgents
+      tags: [Agents]
+      responses:
+        '200':
+          description: Available editorial agents.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentsListEnvelope'
+  /agent/run:
+    post:
+      operationId: runAgent
+      tags: [Agents]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AgentRunRequest'
+      responses:
+        '200':
+          description: Agent execution result.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentRunEnvelope'
   /index/rebuild:
     post:
       operationId: rebuildIndex
@@ -496,6 +525,19 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ArtifactEnvelope'
+  /artifacts/chapter/{chapterId}/agent-results:
+    get:
+      operationId: getChapterAgentResultsArtifact
+      tags: [Reports]
+      parameters:
+        - $ref: '#/components/parameters/chapterIdPath'
+      responses:
+        '200':
+          description: Chapter agent-results artifact.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentResultsEnvelope'
   /artifacts/project/gate:
     get:
       operationId: getProjectGateArtifact
@@ -639,6 +681,56 @@ components:
           properties:
             data:
               $ref: '#/components/schemas/VersionData'
+    AgentsListEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/EnvelopeBase'
+        - type: object
+          properties:
+            data:
+              type: object
+              additionalProperties: { type: string }
+              description: Agent name to description mapping
+    AgentRunRequest:
+      type: object
+      required: [agent_name, scope]
+      properties:
+        agent_name: { type: string }
+        scope:
+          type: string
+          enum: [chapter, project]
+        scope_id:
+          type: integer
+          nullable: true
+    AgentResultData:
+      type: object
+      required: [name, summary, findings, proposals, confidence, needs_human_decision]
+      properties:
+        name: { type: string }
+        summary: { type: string }
+        findings:
+          type: array
+          items: {}
+        proposals:
+          type: array
+          items: {}
+        confidence: { type: number }
+        needs_human_decision: { type: boolean }
+    AgentRunEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/EnvelopeBase'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/AgentResultData'
+    AgentResultsEnvelope:
+      allOf:
+        - $ref: '#/components/schemas/EnvelopeBase'
+        - type: object
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/AgentResultData'
     IndexEntry:
       type: object
       required: [path, sha256, size, line_count, modified_at]
@@ -1041,6 +1133,14 @@ components:
         created_at: { type: string }
         report_dir: { type: string }
         decision_log_json: { type: string }
+        agent_results:
+          type: array
+          items: { $ref: '#/components/schemas/AgentResultData' }
+          description: Agent run results (chapter runs only)
+        decision_log:
+          type: object
+          additionalProperties: true
+          description: Decision log payload (when available)
     RunsListData:
       type: object
       required: [count, runs]
