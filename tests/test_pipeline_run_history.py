@@ -1,3 +1,5 @@
+import json
+import os
 import tempfile
 import unittest
 from pathlib import Path
@@ -28,6 +30,42 @@ class PipelineRunHistoryTests(unittest.TestCase):
             history = load_run_history(config.run_history_file)
             self.assertEqual(1, len(history))
             self.assertEqual(payload["run"]["run_id"], history[0]["run_id"])
+
+    def test_pipeline_writes_agent_results_and_decision_log_includes_agents(self) -> None:
+        key = os.environ.pop("OPENAI_API_KEY", None)
+        anth_key = os.environ.pop("ANTHROPIC_API_KEY", None)
+        try:
+            with tempfile.TemporaryDirectory() as tmp:
+                root = Path(tmp)
+                (root / "chapters").mkdir()
+                (root / "lore").mkdir()
+                (root / "chapters" / "1_Test.md").write_text(
+                    "# Chapter 1\n\nHarry walked into the room.\n",
+                    encoding="utf-8",
+                )
+                (root / "lore" / "Harry.md").write_text("# Harry\n", encoding="utf-8")
+                bootstrap(root)
+                config = load_runtime_config(root)
+
+                payload = run_chapter_pipeline(config, chapter_id=1, output_format="json", strict=False)
+                self.assertIn("agent_results", payload)
+                self.assertEqual(4, len(payload["agent_results"]))
+
+                agent_results_path = config.output_dir / "chapter-1" / "agent-results.json"
+                self.assertTrue(agent_results_path.exists())
+                agent_data = json.loads(agent_results_path.read_text())
+                self.assertEqual(4, len(agent_data))
+
+                decision_log_path = config.output_dir / "chapter-1" / "decision-log.json"
+                self.assertTrue(decision_log_path.exists())
+                decision_data = json.loads(decision_log_path.read_text())
+                self.assertIn("agent_summaries", decision_data)
+                self.assertEqual(4, len(decision_data["agent_summaries"]))
+        finally:
+            if key is not None:
+                os.environ["OPENAI_API_KEY"] = key
+            if anth_key is not None:
+                os.environ["ANTHROPIC_API_KEY"] = anth_key
 
 
 if __name__ == "__main__":

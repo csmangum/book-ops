@@ -20,6 +20,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/agents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listAgents"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/agent/run": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["runAgent"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/index/rebuild": {
         parameters: {
             query?: never;
@@ -516,6 +548,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/artifacts/chapter/{chapterId}/agent-results": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getChapterAgentResultsArtifact"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/artifacts/project/gate": {
         parameters: {
             query?: never;
@@ -615,6 +663,32 @@ export interface components {
         };
         VersionEnvelope: components["schemas"]["EnvelopeBase"] & {
             data?: components["schemas"]["VersionData"];
+        };
+        AgentsListEnvelope: components["schemas"]["EnvelopeBase"] & {
+            /** @description Agent name to description mapping */
+            data?: {
+                [key: string]: string;
+            };
+        };
+        AgentRunRequest: {
+            agent_name: string;
+            /** @enum {string} */
+            scope: "chapter" | "project";
+            scope_id?: number | null;
+        };
+        AgentResultData: {
+            name: string;
+            summary: string;
+            findings: unknown[];
+            proposals: unknown[];
+            confidence: number;
+            needs_human_decision: boolean;
+        };
+        AgentRunEnvelope: components["schemas"]["EnvelopeBase"] & {
+            data?: components["schemas"]["AgentResultData"];
+        };
+        AgentResultsEnvelope: components["schemas"]["EnvelopeBase"] & {
+            data?: components["schemas"]["AgentResultData"][];
         };
         IndexEntry: {
             path: string;
@@ -849,6 +923,10 @@ export interface components {
             created_at: string;
             report_dir: string;
             decision_log_json: string;
+            /** @description Agent run results (chapter runs only) */
+            agent_results?: components["schemas"]["AgentResultData"][];
+            /** @description Decision log payload (when available) */
+            decision_log?: Record<string, never>;
         };
         RunsListData: {
             count: number;
@@ -947,6 +1025,50 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["VersionEnvelope"];
+                };
+            };
+        };
+    };
+    listAgents: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Available editorial agents. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgentsListEnvelope"];
+                };
+            };
+        };
+    };
+    runAgent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AgentRunRequest"];
+            };
+        };
+        responses: {
+            /** @description Agent execution result. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgentRunEnvelope"];
                 };
             };
         };
@@ -1673,6 +1795,28 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ArtifactEnvelope"];
+                };
+            };
+        };
+    };
+    getChapterAgentResultsArtifact: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                chapterId: components["parameters"]["chapterIdPath"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Chapter agent-results artifact. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgentResultsEnvelope"];
                 };
             };
         };

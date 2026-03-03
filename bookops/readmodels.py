@@ -7,7 +7,7 @@ from .canon import build_canon, load_snapshot
 from .config import RuntimeConfig
 from .ingest import load_chapters
 from .runlog import get_run_entry, load_run_history
-from .utils import dump_yaml, load_yaml
+from .utils import dump_yaml, load_json, load_yaml
 
 
 def list_runs(config: RuntimeConfig) -> list[dict[str, Any]]:
@@ -15,7 +15,21 @@ def list_runs(config: RuntimeConfig) -> list[dict[str, Any]]:
 
 
 def get_run(config: RuntimeConfig, run_id: str) -> dict[str, Any] | None:
-    return get_run_entry(config.run_history_file, run_id)
+    entry = get_run_entry(config.run_history_file, run_id)
+    if not entry:
+        return None
+    report_dir_str = entry.get("report_dir")
+    if isinstance(report_dir_str, str) and report_dir_str.strip():
+        report_dir = Path(report_dir_str)
+        if report_dir.is_dir():
+            decision_log = load_json(report_dir / "decision-log.json", default={}) or {}
+            agent_results = load_json(report_dir / "agent-results.json", default=[])
+            if isinstance(agent_results, list):
+                entry["agent_results"] = agent_results
+            else:
+                entry["agent_results"] = []
+            entry["decision_log"] = decision_log
+    return entry
 
 
 def get_chapter_content(config: RuntimeConfig, chapter_id: int) -> dict[str, Any]:

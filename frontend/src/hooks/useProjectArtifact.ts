@@ -45,9 +45,13 @@ async function fetchProjectArtifact(artifactType: ProjectArtifactType) {
   }
 }
 
-export function useProjectArtifact(artifactType: ProjectArtifactType) {
+export function useProjectArtifact(
+  artifactType: ProjectArtifactType,
+  options?: { enabled?: boolean },
+) {
   return useQuery({
     queryKey: queryKeys.projectArtifact(artifactType),
     queryFn: async () => fetchProjectArtifact(artifactType),
+    enabled: options?.enabled ?? true,
   });
 }

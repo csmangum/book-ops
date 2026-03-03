@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
+from .agents import AgentResult
 from .utils import dump_json, load_json, utc_now_iso, write_text
 
 
@@ -52,11 +53,17 @@ def write_decision_log(
     gate: dict[str, Any],
     analysis: dict[str, Any],
     lore_delta: dict[str, Any] | None = None,
+    agent_results: list[AgentResult] | None = None,
 ) -> dict[str, Any]:
     run_id = utc_now_iso().replace(":", "-").replace("+00-00", "Z")
     findings = analysis.get("generated_findings", [])
     hard_count = sum(1 for f in findings if str(f.get("rule_id", "")).startswith("HARD."))
     soft_count = sum(1 for f in findings if str(f.get("rule_id", "")).startswith("SOFT."))
+    agent_summaries = (
+        [{"name": r.name, "summary": r.summary, "confidence": r.confidence, "needs_human_decision": r.needs_human_decision} for r in agent_results]
+        if agent_results
+        else []
+    )
     payload = {
         "run_id": run_id,
         "scope": scope,
@@ -67,6 +74,7 @@ def write_decision_log(
             "soft_findings": soft_count,
         },
         "lore_proposal_count": len((lore_delta or {}).get("proposals", [])),
+        "agent_summaries": list(agent_summaries),
         "generated_at": utc_now_iso(),
     }
 
@@ -79,8 +87,10 @@ def write_decision_log(
         f"- Gate Message: {gate.get('message', '')}",
         f"- Findings: {payload['analysis_counts']['total_findings']} (hard: {hard_count}, soft: {soft_count})",
         f"- Lore proposals: {payload['lore_proposal_count']}",
-        "",
     ]
+    if agent_summaries:
+        md_lines.append(f"- Agents: {len(agent_summaries)} ran")
+    md_lines.append("")
     md_path = output_dir / "decision-log.md"
     json_path = output_dir / "decision-log.json"
     write_text(md_path, "\n".join(md_lines))

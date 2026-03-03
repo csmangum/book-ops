@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 const navItems = [
   { href: "/", label: "Command Center" },
   { href: "/chapters", label: "Chapters" },
+  { href: "/agents", label: "Agents" },
   { href: "/lore", label: "Lore Sync" },
   { href: "/timeline", label: "Timeline" },
   { href: "/canon", label: "Canon Graph" },

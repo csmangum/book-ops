@@ -14,4 +14,5 @@ export const queryKeys = {
   projectArtifact: (artifactType: string) =>
     ["project-artifact", artifactType] as const,
   runHistory: ["run-history"] as const,
+  agents: () => ["agents"] as const,
 };

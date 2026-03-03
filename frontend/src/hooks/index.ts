@@ -1,4 +1,6 @@
 export * from "./queryKeys";
+export * from "./useAgentRun";
+export * from "./useAgents";
 export * from "./useAnalyzeChapter";
 export * from "./useAnalyzeProject";
 export * from "./useCanonGraph";

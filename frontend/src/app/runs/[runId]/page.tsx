@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 
 import {
   DecisionLogViewer,
+  RunAgentResultsTab,
   RunArtifactsTab,
   RunFindingsTab,
   RunGateTab,
@@ -28,6 +29,8 @@ export default function RunDetailPage() {
     [params.runId, runHistory.data, runQuery.data],
   );
 
+  const runDetail = runQuery.data;
+
   if (!run) {
     return (
       <EmptyState
@@ -47,23 +50,27 @@ export default function RunDetailPage() {
       </section>
       <RunSummary run={run} />
       <Tabs defaultValue="findings">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="findings">Findings</TabsTrigger>
           <TabsTrigger value="gate">Gate</TabsTrigger>
+          <TabsTrigger value="agents">Agents</TabsTrigger>
           <TabsTrigger value="artifacts">Artifacts</TabsTrigger>
           <TabsTrigger value="decision-log">Decision log</TabsTrigger>
         </TabsList>
         <TabsContent value="findings" className="mt-4">
-          <RunFindingsTab />
+          <RunFindingsTab run={run} />
         </TabsContent>
         <TabsContent value="gate" className="mt-4">
-          <RunGateTab />
+          <RunGateTab run={run} />
+        </TabsContent>
+        <TabsContent value="agents" className="mt-4">
+          <RunAgentResultsTab runDetail={runDetail} />
         </TabsContent>
         <TabsContent value="artifacts" className="mt-4">
-          <RunArtifactsTab />
+          <RunArtifactsTab run={run} />
         </TabsContent>
         <TabsContent value="decision-log" className="mt-4">
-          <DecisionLogViewer />
+          <DecisionLogViewer runDetail={runDetail} />
         </TabsContent>
       </Tabs>
     </div>

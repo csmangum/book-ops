@@ -2,6 +2,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from bookops.agents import AgentResult
 from bookops.config import bootstrap, load_runtime_config
 from bookops.lore import apply_lore_proposal, approve_lore_proposal, generate_lore_delta
 from bookops.utils import dump_json, dump_yaml
@@ -135,6 +136,41 @@ class LoreSyncTests(unittest.TestCase):
             # paths with ".." segments that escape the project root must be rejected
             with self.assertRaises(ValueError):
                 apply_lore_proposal(config, "proposal-traversal")
+
+    def test_agent_proposals_merged_into_lore_delta(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "chapters").mkdir()
+            (root / "lore").mkdir()
+            (root / "chapters" / "1_Test.md").write_text("# Ch1\n\nHarry walked.\n", encoding="utf-8")
+            (root / "lore" / "Harry.md").write_text("# Harry\n", encoding="utf-8")
+            bootstrap(root)
+            config = load_runtime_config(root)
+
+            agent_results = [
+                AgentResult(
+                    name="lore_curator",
+                    summary="Suggested lore update.",
+                    findings=[],
+                    proposals=[
+                        {"kind": "lore_update", "content": "Add backstory to lore/Harry.md from chapter 1."},
+                    ],
+                    confidence=0.8,
+                    needs_human_decision=True,
+                ),
+            ]
+
+            delta = generate_lore_delta(config, chapter_id=1, agent_results=agent_results)
+            proposals = delta.get("proposals", [])
+
+            manuscript_proposals = [p for p in proposals if p["id"].startswith("proposal-")]
+            agent_proposals = [p for p in proposals if p["id"].startswith("agent-")]
+
+            self.assertGreaterEqual(len(manuscript_proposals), 1)
+            self.assertEqual(1, len(agent_proposals))
+            self.assertEqual("lore_curator", agent_proposals[0]["source_agent"])
+            self.assertEqual("lore/Harry.md", agent_proposals[0]["target_lore_file"])
+            self.assertIn("Add backstory", agent_proposals[0]["reason"])
 
 
 if __name__ == "__main__":

@@ -1,11 +1,74 @@
 from __future__ import annotations
+
+import hashlib
+import re
 from pathlib import Path
 from typing import Any
 
+from .agents import AgentResult
 from .config import RuntimeConfig, load_rules
 from .ingest import load_chapters, load_lore
 from .utils import dump_json, load_json, utc_now_iso
 from .vcs import changed_paths_since
+
+
+_LORE_FILE_RE = re.compile(r"(?:lore[/\\])?([a-zA-Z0-9_-]+)\.md", re.IGNORECASE)
+
+
+def agent_proposals_to_lore_proposals(
+    agent_results: list[AgentResult],
+    scope: str,
+    lore_docs: list[Any],
+    config: RuntimeConfig,
+) -> list[dict[str, Any]]:
+    """Convert agent proposals (kind=lore_update) to lore proposal format.
+
+    Agent proposals with kind 'lore_update' are converted to the standard
+    lore proposal shape for the approve/sync path. Target lore file is
+    inferred from content when possible, else the first lore file is used.
+    """
+    proposals: list[dict[str, Any]] = []
+    chapter_id: int | None = None
+    if scope.startswith("chapter:"):
+        try:
+            chapter_id = int(scope.split(":")[1])
+        except (IndexError, ValueError):
+            pass
+
+    if not lore_docs:
+        return []
+    lore_paths = [str(d.path.relative_to(config.project_root)) for d in lore_docs]
+    lore_names = {d.name.lower(): str(d.path.relative_to(config.project_root)) for d in lore_docs}
+    default_target = lore_paths[0]
+
+    for result in agent_results:
+        for idx, p in enumerate(result.proposals):
+            if p.get("kind") != "lore_update":
+                continue
+            content = p.get("content", "")
+            target = default_target
+            match = _LORE_FILE_RE.search(content)
+            if match:
+                name = match.group(1).lower()
+                for lore_name, path in lore_names.items():
+                    if lore_name == name or name in lore_name:
+                        target = path
+                        break
+
+            proposal_id = f"agent-{result.name}-{idx}-{hashlib.sha256(content.encode()).hexdigest()[:8]}"
+            proposals.append(
+                {
+                    "id": proposal_id,
+                    "chapter": chapter_id,
+                    "target_lore_file": target,
+                    "reason": content,
+                    "evidence": [],
+                    "status": "pending_review",
+                    "source_agent": result.name,
+                }
+            )
+
+    return proposals
 
 
 def select_chapters_for_lore_delta(
@@ -28,6 +91,7 @@ def generate_lore_delta(
     config: RuntimeConfig,
     chapter_id: int | None = None,
     since_ref: str | None = None,
+    agent_results: list[AgentResult] | None = None,
 ) -> dict[str, Any]:
     chapters = load_chapters(config.chapters_dir)
     lore_docs = load_lore(config.lore_dir)
@@ -69,6 +133,13 @@ def generate_lore_delta(
                         "status": "pending_review",
                     }
                 )
+
+    if agent_results:
+        scope = f"chapter:{chapter_id}" if chapter_id is not None else "project"
+        agent_proposals = agent_proposals_to_lore_proposals(
+            agent_results, scope, lore_docs, config
+        )
+        proposals.extend(agent_proposals)
 
     payload = {
         "generated_at": utc_now_iso(),

@@ -12,7 +12,8 @@ export type ChapterArtifactType =
   | "decision-log"
   | "continuity"
   | "style-audit"
-  | "lore-delta";
+  | "lore-delta"
+  | "agent-results";
 
 async function fetchChapterArtifact(chapterId: number, artifactType: ChapterArtifactType) {
   switch (artifactType) {
@@ -46,6 +47,11 @@ async function fetchChapterArtifact(chapterId: number, artifactType: ChapterArti
         (await apiClient.getChapterLoreDeltaArtifact(chapterId)).data,
         "Could not load chapter lore-delta artifact.",
       );
+    case "agent-results":
+      return unwrapEnvelope(
+        (await apiClient.getChapterAgentResultsArtifact(chapterId)).data,
+        "Could not load chapter agent-results artifact.",
+      );
     default:
       return {};
   }
@@ -54,10 +60,11 @@ async function fetchChapterArtifact(chapterId: number, artifactType: ChapterArti
 export function useChapterArtifact(
   chapterId: number,
   artifactType: ChapterArtifactType,
+  options?: { enabled?: boolean },
 ) {
   return useQuery({
     queryKey: queryKeys.chapterArtifact(chapterId, artifactType),
     queryFn: async () => fetchChapterArtifact(chapterId, artifactType),
-    enabled: Number.isFinite(chapterId),
+    enabled: options?.enabled ?? Number.isFinite(chapterId),
   });
 }
