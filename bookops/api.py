@@ -11,8 +11,9 @@ from typing import Any
 from fastapi import FastAPI, Query
 
 from . import __version__
-from .agents import AGENT_PACK_VERSION, list_agents
+from .agents import AGENT_PACK_VERSION, list_agents, run_agent
 from .cli import main as cli_main
+from .config import load_runtime_config
 from .utils import load_json
 
 
@@ -88,6 +89,27 @@ def get_version() -> dict[str, Any]:
             "agent_count": len(list_agents()),
         },
     )
+
+
+@app.get("/agents")
+def get_agents() -> dict[str, Any]:
+    return _envelope(ok=True, exit_code=0, stderr="", data=list_agents())
+
+
+@app.post("/agent/run")
+def run_agent_endpoint(body: dict[str, Any]) -> dict[str, Any]:
+    try:
+        project_root, output_dir = _api_context()
+        config = load_runtime_config(project_root=project_root, output_dir=output_dir)
+        result = run_agent(
+            body["agent_name"],
+            scope=body["scope"],
+            scope_id=body.get("scope_id"),
+            config=config,
+        )
+        return _envelope(ok=True, exit_code=0, stderr="", data=result.to_dict())
+    except ValueError as e:
+        return _envelope(ok=False, data={}, exit_code=1, stderr=str(e))
 
 
 @app.post("/index/rebuild")
@@ -332,6 +354,16 @@ def artifact_chapter_style(chapter_id: int) -> dict[str, Any]:
 def artifact_chapter_lore_delta(chapter_id: int) -> dict[str, Any]:
     _project_root, output_dir = _api_context()
     return _read_artifact(output_dir / f"chapter-{chapter_id}" / "lore-delta.json")
+
+
+@app.get("/artifacts/chapter/{chapter_id}/agent-results")
+def artifact_chapter_agent_results(chapter_id: int) -> dict[str, Any]:
+    _project_root, output_dir = _api_context()
+    path = output_dir / f"chapter-{chapter_id}" / "agent-results.json"
+    if not path.exists():
+        return _envelope(ok=False, data=[], exit_code=1, stderr=f"artifact not found: {path}")
+    payload = load_json(path, default=[])
+    return _envelope(ok=True, data=payload if isinstance(payload, list) else [], exit_code=0, stderr="")
 
 
 @app.get("/artifacts/project/gate")

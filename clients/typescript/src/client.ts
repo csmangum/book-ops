@@ -35,6 +35,20 @@ export class BookOpsApiClient {
     return this.client.GET("/version");
   }
 
+  listAgents() {
+    return this.client.GET("/agents");
+  }
+
+  runAgent(body: components["schemas"]["AgentRunRequest"]) {
+    return this.client.POST("/agent/run", { body });
+  }
+
+  getChapterAgentResultsArtifact(chapterId: number) {
+    return this.client.GET("/artifacts/chapter/{chapterId}/agent-results", {
+      params: { path: { chapterId } },
+    });
+  }
+
   rebuildIndex() {
     return this.client.POST("/index/rebuild");
   }
