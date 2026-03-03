@@ -90,6 +90,16 @@ python -m bookops settings get
 python -m bookops settings patch --patch-json '{"project":{"chapters_dir":"chapters"}}'
 ```
 
+## Multi-book semantic index
+
+The API uses `paths.semantic_index_dir` (default `.book_index`) for semantic search. To query a different book's index (e.g. Alice):
+
+```bash
+python -m bookops settings patch --patch-json '{"paths":{"semantic_index_dir":".book_index_alice"}}'
+```
+
+Ensure `chapters_alice/` and `.book_index_alice/` exist (see "PDF ingest and manual testing").
+
 ## Gate exit codes (CI-friendly)
 
 - `0` pass
@@ -137,6 +147,19 @@ Paths are relative to `BOOKOPS_OUTPUT_DIR` (default `reports`). Running the pipe
 - Run `issue list` with severity filters.
 - Confirm unresolved `critical` issues.
 - Use waiver only with explicit rationale.
+
+### PDF ingest and manual testing
+
+To test PDF ingest with a real PDF (e.g. Alice in Wonderland), download the public-domain text from [Project Gutenberg](https://www.gutenberg.org/ebooks/11) and save as `carroll-1865.pdf` in the project root. Then:
+
+```bash
+python -m indexer ingest-pdf carroll-1865.pdf --chapters-dir chapters_alice --book-id alice --build --index-dir .book_index_alice
+python -m indexer search "rabbit hole" --index-dir .book_index_alice
+```
+
+**Note:** When using `--chapters-dir` with ingest-pdf, pass the same path to `build --chapters-dir` if you run build separately. The default for build is the project's `chapters/` directory.
+
+Unit tests use a synthetic PDF fixture by default. Set `USE_REAL_PDF_TESTS=1` to run tests against the real PDF when present.
 
 ### `canon build` or `index rebuild` fails
 - **Missing chapters dir:** Ensure `chapters/` exists under the project root (or the path set in config `project.chapters_dir`). Run `bookops init` if the project is new.

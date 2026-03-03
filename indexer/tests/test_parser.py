@@ -96,6 +96,19 @@ def test_parse_all_chapters_raises_when_no_files(tmp_path):
         parse_all_chapters(chapters_dir=tmp_path)
 
 
+def test_parse_all_chapters_warns_on_unknown_book_id(tmp_path):
+    """parse_all_chapters warns when book_id is unknown and falls back to default ACT_MAP."""
+    (tmp_path / "1_Test_Chapter.md").write_text(
+        "# Chapter 1\n\nTest Title\n\nSome body text."
+    )
+    with pytest.warns(UserWarning, match="Unknown book_id"):
+        units = parse_all_chapters(chapters_dir=tmp_path, book_id="typo_alicee")
+    chapter_units = [u for u in units if u.level == "chapter"]
+    assert len(chapter_units) == 1
+    # Falls back to last_pure_thing ACT_MAP; chapter 1 is in Act I
+    assert chapter_units[0].act == "Act I – The Hire"
+
+
 @pytest.mark.skipif(
     not CHAPTER_DIR.exists() or not list(CHAPTER_DIR.glob("*.md")),
     reason="Chapters directory with .md files required",
@@ -138,3 +151,18 @@ class TestFullParse:
         assert "chapter_num" in meta
         assert "chapter_title" in meta
         assert "source_file" in meta
+
+
+@pytest.mark.skipif(
+    not (CHAPTER_DIR.parent / "chapters_alice").exists()
+    or not list((CHAPTER_DIR.parent / "chapters_alice").glob("*.md")),
+    reason="chapters_alice with .md files required",
+)
+def test_parse_alice_with_book_id():
+    """Parse Alice chapters with book_id=alice uses Full Book act."""
+    alice_dir = CHAPTER_DIR.parent / "chapters_alice"
+    units = parse_all_chapters(chapters_dir=alice_dir, book_id="alice")
+    chapter_units = [u for u in units if u.level == "chapter"]
+    assert len(chapter_units) == 12
+    for u in chapter_units:
+        assert u.act == "Full Book"

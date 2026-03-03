@@ -212,3 +212,10 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# PDF ingest artifacts (generated)
+.book_index_alice/
+chapters_alice/
+
+# PDF test assets (download manually for real-PDF testing)
+carroll-1865.pdf

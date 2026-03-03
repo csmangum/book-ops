@@ -19,9 +19,12 @@ from __future__ import annotations
 
 import argparse
 import sys
+from pathlib import Path
 
 import nltk
 from rich.console import Console
+
+from bookops.pdf_ingest import ingest_pdf_to_chapters
 from rich.table import Table
 from rich.panel import Panel
 from rich import box
@@ -39,6 +42,49 @@ def _ensure_index(idx) -> bool:
     return True
 
 
+def cmd_ingest_pdf(args: argparse.Namespace) -> None:
+    """Extract PDF, detect chapters, write Markdown, optionally run indexer build."""
+    pdf_path = Path(args.pdf).resolve()
+    if args.chapters_dir:
+        chapters_dir = Path(args.chapters_dir).resolve()
+    else:
+        chapters_dir = pdf_path.parent / "chapters"
+
+    with console.status("[bold green]Extracting PDF and detecting chapters..."):
+        written = ingest_pdf_to_chapters(
+            pdf_path,
+            output_dir=chapters_dir,
+            skip_pages=args.skip_pages,
+            toc_page=args.toc_page,
+        )
+
+    console.print(f"[green]Wrote {len(written)} chapters to {chapters_dir}[/green]")
+    for p in written[:5]:
+        console.print(f"  [dim]{p.name}[/dim]")
+    if len(written) > 5:
+        console.print(f"  [dim]... and {len(written) - 5} more[/dim]")
+
+    if args.build:
+        # Lazy import: BookIndex loads ~500MB embedding model
+        from .embedder import BookIndex
+
+        book_id = getattr(args, "book_id", None)
+        persist_dir = Path(args.index_dir).resolve() if getattr(args, "index_dir", None) else None
+        with console.status("[bold green]Building index..."):
+            idx = BookIndex(
+                chapters_dir=chapters_dir,
+                book_id=book_id,
+                persist_dir=persist_dir,
+            )
+            counts = idx.build(force=True)
+        table = Table(title="Index Built", box=box.ROUNDED)
+        table.add_column("Level", style="cyan")
+        table.add_column("Units", style="green", justify="right")
+        for level in LEVELS:
+            table.add_row(level, str(counts.get(level, 0)))
+        console.print(table)
+
+
 def cmd_setup(args: argparse.Namespace) -> None:
     """Download NLTK punkt tokenizer data required for sentence splitting."""
     with console.status("[bold green]Downloading NLTK punkt tokenizer..."):
@@ -48,10 +94,19 @@ def cmd_setup(args: argparse.Namespace) -> None:
 
 
 def cmd_build(args: argparse.Namespace) -> None:
+    # Lazy import: BookIndex loads ~500MB embedding model
     from .embedder import BookIndex
 
+    persist_dir = Path(args.index_dir).resolve() if getattr(args, "index_dir", None) else None
+    chapters_dir = Path(args.chapters_dir).resolve() if getattr(args, "chapters_dir", None) else None
+    book_id = getattr(args, "book_id", None)
+
     with console.status("[bold green]Loading model and building index..."):
-        idx = BookIndex()
+        idx = BookIndex(
+            persist_dir=persist_dir,
+            chapters_dir=chapters_dir,
+            book_id=book_id,
+        )
         counts = idx.build(force=args.force)
 
     table = Table(title="Index Built", box=box.ROUNDED)
@@ -63,9 +118,11 @@ def cmd_build(args: argparse.Namespace) -> None:
 
 
 def cmd_search(args: argparse.Namespace) -> None:
+    # Lazy import: BookIndex loads ~500MB embedding model
     from .embedder import BookIndex
 
-    idx = BookIndex()
+    persist_dir = Path(args.index_dir).resolve() if getattr(args, "index_dir", None) else None
+    idx = BookIndex(persist_dir=persist_dir)
     if not _ensure_index(idx):
         return
 
@@ -130,9 +187,11 @@ def cmd_search(args: argparse.Namespace) -> None:
 
 
 def cmd_drill(args: argparse.Namespace) -> None:
+    # Lazy import: BookIndex loads ~500MB embedding model
     from .embedder import BookIndex
 
-    idx = BookIndex()
+    persist_dir = Path(args.index_dir).resolve() if getattr(args, "index_dir", None) else None
+    idx = BookIndex(persist_dir=persist_dir)
     if not _ensure_index(idx):
         return
 
@@ -175,9 +234,11 @@ def cmd_drill(args: argparse.Namespace) -> None:
 
 
 def cmd_stats(args: argparse.Namespace) -> None:
+    # Lazy import: BookIndex loads ~500MB embedding model
     from .embedder import BookIndex
 
-    idx = BookIndex()
+    persist_dir = Path(args.index_dir).resolve() if getattr(args, "index_dir", None) else None
+    idx = BookIndex(persist_dir=persist_dir)
     if not _ensure_index(idx):
         return
 
@@ -209,6 +270,21 @@ def main() -> None:
     )
     sub = parser.add_subparsers(dest="command")
 
+    # ingest-pdf
+    p_ingest = sub.add_parser("ingest-pdf", help="Extract PDF to Markdown chapters and optionally build index")
+    p_ingest.add_argument("pdf", help="Path to PDF file")
+    p_ingest.add_argument(
+        "--chapters-dir",
+        default=None,
+        help="Output directory for chapter Markdown files (default: <pdf_dir>/chapters)",
+    )
+    p_ingest.add_argument("--skip-pages", type=int, default=12, help="Skip first N pages (front matter)")
+    p_ingest.add_argument("--toc-page", type=int, default=11, help="Page number of table of contents (1-based)")
+    p_ingest.add_argument("--index-dir", default=None, help="Index persistence directory (default: .book_index)")
+    p_ingest.add_argument("--book-id", default=None, help="Book ID for act mapping (e.g. alice, last_pure_thing)")
+    p_ingest.add_argument("--build", action="store_true", help="Run indexer build after ingest")
+    p_ingest.set_defaults(func=cmd_ingest_pdf)
+
     # setup
     p_setup = sub.add_parser("setup", help="Download NLTK data (punkt) if needed")
     p_setup.set_defaults(func=cmd_setup)
@@ -216,10 +292,18 @@ def main() -> None:
     # build
     p_build = sub.add_parser("build", help="Build or rebuild the semantic index")
     p_build.add_argument("--force", action="store_true", help="Force full rebuild")
+    p_build.add_argument("--index-dir", default=None, help="Index persistence directory (default: .book_index)")
+    p_build.add_argument(
+        "--chapters-dir",
+        default=None,
+        help="Chapters directory (default: project chapters/). When building after ingest-pdf, pass the same --chapters-dir used for ingest.",
+    )
+    p_build.add_argument("--book-id", default=None, help="Book ID for act mapping (e.g. alice, last_pure_thing)")
     p_build.set_defaults(func=cmd_build)
 
     # search
     p_search = sub.add_parser("search", help="Semantic search at a given level")
+    p_search.add_argument("--index-dir", default=None, help="Index directory (e.g. .book_index_alice for Alice)")
     p_search.add_argument("query", help="Search query")
     p_search.add_argument("-l", "--level", choices=LEVELS, default="paragraph",
                           help="Granularity level (default: paragraph)")
@@ -234,6 +318,7 @@ def main() -> None:
 
     # drill
     p_drill = sub.add_parser("drill", help="Hierarchical drill-down search")
+    p_drill.add_argument("--index-dir", default=None, help="Index directory (e.g. .book_index_alice for Alice)")
     p_drill.add_argument("query", help="Search query")
     p_drill.add_argument("--top", choices=LEVELS, default="chapter",
                          help="Top-level search (default: chapter)")
@@ -247,6 +332,7 @@ def main() -> None:
 
     # stats
     p_stats = sub.add_parser("stats", help="Show index statistics")
+    p_stats.add_argument("--index-dir", default=None, help="Index directory (e.g. .book_index_alice for Alice)")
     p_stats.set_defaults(func=cmd_stats)
 
     args = parser.parse_args()
