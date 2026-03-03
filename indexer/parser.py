@@ -172,8 +172,21 @@ def parse_chapter(
     text = filepath.read_text(encoding="utf-8")
     filename = filepath.name
     chapter_num = _chapter_number(filename)
-    act_map = act_map or ACT_MAP
-    act = act_map.get(chapter_num, "Full Book")
+    is_custom_act_map = act_map is not None
+    effective_act_map = act_map or ACT_MAP
+    if chapter_num in effective_act_map:
+        act = effective_act_map[chapter_num]
+    elif is_custom_act_map:
+        # For caller-provided act maps, fall back to "Full Book" when the chapter
+        # number is not present, preserving existing lenient behavior.
+        act = "Full Book"
+    else:
+        # When using the default ACT_MAP, fail fast on unexpected chapters so
+        # that stray files (e.g., 26_*.md) do not get silently mis-tagged.
+        raise ValueError(
+            f"Chapter number {chapter_num} from {filename!r} not found in ACT_MAP. "
+            "Use --book-id to select a different act map, or add the chapter to ACT_MAP."
+        )
 
     chapter_title = _chapter_title_from_content(text) or _chapter_title_from_filename(filename)
 
@@ -257,7 +270,7 @@ def parse_all_chapters(
 
 
 def build_act_units(
-    chapter_units: list[TextUnit],
+    units: list[TextUnit],
     act_ranges: dict[str, tuple[int, int]] | None = None,
 ) -> list[TextUnit]:
     """Build act-level units by concatenating chapter texts."""
@@ -265,7 +278,7 @@ def build_act_units(
     act_texts: dict[str, list[str]] = {}
     act_meta: dict[str, tuple[int, str]] = {}
 
-    for u in chapter_units:
+    for u in units:
         if u.level == "chapter":
             act_texts.setdefault(u.act, []).append(u.text)
             if u.act not in act_meta:

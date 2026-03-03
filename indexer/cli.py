@@ -49,11 +49,7 @@ def cmd_ingest_pdf(args: argparse.Namespace) -> None:
     if args.chapters_dir:
         chapters_dir = Path(args.chapters_dir).resolve()
     else:
-        chapters_dir = (
-            pdf_path.parent / "chapters_alice"
-            if "alice" in pdf_path.name.lower() or "carroll" in pdf_path.name.lower()
-            else pdf_path.parent / "chapters"
-        )
+        chapters_dir = pdf_path.parent / "chapters"
 
     with console.status("[bold green]Extracting PDF and detecting chapters..."):
         written = ingest_pdf_to_chapters(
@@ -72,8 +68,8 @@ def cmd_ingest_pdf(args: argparse.Namespace) -> None:
     if args.build:
         from .embedder import BookIndex
 
-        book_id = "alice" if "alice" in pdf_path.name.lower() or "carroll" in pdf_path.name.lower() else None
-        persist_dir = chapters_dir.parent / ".book_index_alice" if book_id else None
+        book_id = getattr(args, "book_id", None)
+        persist_dir = Path(args.index_dir).resolve() if getattr(args, "index_dir", None) else None
         with console.status("[bold green]Building index..."):
             idx = BookIndex(
                 chapters_dir=chapters_dir,
@@ -284,6 +280,8 @@ def main() -> None:
     p_ingest.add_argument("--chapters-dir", default=None, help="Output directory for chapter Markdown files")
     p_ingest.add_argument("--skip-pages", type=int, default=12, help="Skip first N pages (front matter)")
     p_ingest.add_argument("--toc-page", type=int, default=11, help="Page number of table of contents (1-based)")
+    p_ingest.add_argument("--index-dir", default=None, help="Index persistence directory (default: .book_index)")
+    p_ingest.add_argument("--book-id", default=None, help="Book ID for act mapping (e.g. alice, last_pure_thing)")
     p_ingest.add_argument("--build", action="store_true", help="Run indexer build after ingest")
     p_ingest.set_defaults(func=cmd_ingest_pdf)
 

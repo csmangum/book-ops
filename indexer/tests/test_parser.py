@@ -147,8 +147,6 @@ class TestFullParse:
 )
 def test_parse_alice_with_book_id():
     """Parse Alice chapters with book_id=alice uses Full Book act."""
-    from pathlib import Path
-
     alice_dir = CHAPTER_DIR.parent / "chapters_alice"
     units = parse_all_chapters(chapters_dir=alice_dir, book_id="alice")
     chapter_units = [u for u in units if u.level == "chapter"]

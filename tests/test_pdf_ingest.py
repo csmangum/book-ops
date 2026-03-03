@@ -32,16 +32,43 @@ _FIXTURE_CHAPTERS = [
 ]
 
 
-def _make_alice_fixture_pdf(out_path: Path) -> None:
-    """Create a minimal multi-page PDF that mimics Alice in Wonderland structure.
+def _write_raw_pdf(pages: list[list[str]], out_path: Path) -> None:
+    """Write a minimal valid multi-page PDF with text using raw PDF syntax.
 
-    Produces a TOC on page 11 and chapter content pages starting at page 13,
-    matching the structure expected by the ingest pipeline.
+    Uses no private or internal pypdf APIs, making the fixture stable across
+    pypdf releases.
     """
-    from pypdf import PdfWriter
-    from pypdf.generic import DecodedStreamObject, DictionaryObject, NameObject
+    buf = io.BytesIO()
+    n_pages = len(pages)
+    # Object layout: 1=Catalog, 2=Pages, 3=Font, then pairs (page dict, content stream)
+    CATALOG, PAGES, FONT = 1, 2, 3
+    FIRST_PAGE_OBJ = 4
+    offsets: dict[int, int] = {}
+    buf.write(b"%PDF-1.4\n")
 
-    def _add_text_page(writer: PdfWriter, text_lines: list[str]) -> None:
+    def write_obj(num: int, data: bytes) -> None:
+        offsets[num] = buf.tell()
+        buf.write(f"{num} 0 obj\n".encode())
+        buf.write(data)
+        buf.write(b"\nendobj\n")
+
+    def write_stream_obj(num: int, stream_data: bytes) -> None:
+        offsets[num] = buf.tell()
+        buf.write(f"{num} 0 obj\n".encode())
+        buf.write(f"<< /Length {len(stream_data)} >>\nstream\n".encode())
+        buf.write(stream_data)
+        buf.write(b"\nendstream\nendobj\n")
+
+    page_obj_nums = [FIRST_PAGE_OBJ + i * 2 for i in range(n_pages)]
+    kids_str = " ".join(f"{k} 0 R" for k in page_obj_nums)
+
+    write_obj(CATALOG, f"<< /Type /Catalog /Pages {PAGES} 0 R >>".encode())
+    write_obj(PAGES, f"<< /Type /Pages /Kids [{kids_str}] /Count {n_pages} >>".encode())
+    write_obj(FONT, b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>")
+
+    for i, text_lines in enumerate(pages):
+        page_num = FIRST_PAGE_OBJ + i * 2
+        content_num = page_num + 1
         content_parts = []
         y = 730
         for line in text_lines:
@@ -50,36 +77,50 @@ def _make_alice_fixture_pdf(out_path: Path) -> None:
             y -= 14
             if y < 50:
                 break
-        content = "\n".join(content_parts)
-        page = writer.add_blank_page(width=612, height=792)
-        stream = DecodedStreamObject()
-        stream.set_data(content.encode("latin-1"))
-        font_dict = DictionaryObject({
-            NameObject("/Type"): NameObject("/Font"),
-            NameObject("/Subtype"): NameObject("/Type1"),
-            NameObject("/BaseFont"): NameObject("/Helvetica"),
-        })
-        stream_ref = writer._add_object(stream)
-        font_ref = writer._add_object(font_dict)
-        page[NameObject("/Contents")] = stream_ref
-        page[NameObject("/Resources")] = DictionaryObject({
-            NameObject("/Font"): DictionaryObject({NameObject("/F1"): font_ref})
-        })
+        content_bytes = "\n".join(content_parts).encode("latin-1")
+        page_dict = (
+            f"<< /Type /Page /Parent {PAGES} 0 R "
+            f"/MediaBox [0 0 612 792] "
+            f"/Contents {content_num} 0 R "
+            f"/Resources << /Font << /F1 {FONT} 0 R >> >> >>"
+        ).encode()
+        write_obj(page_num, page_dict)
+        write_stream_obj(content_num, content_bytes)
 
-    writer = PdfWriter()
+    n_objects = FIRST_PAGE_OBJ + n_pages * 2
+    xref_offset = buf.tell()
+    buf.write(b"xref\n")
+    buf.write(f"0 {n_objects}\n".encode())
+    buf.write(b"0000000000 65535 f \n")  # object 0 is always free (PDF spec requirement)
+    for num in range(1, n_objects):
+        buf.write(f"{offsets[num]:010d} 00000 n \n".encode())
+    buf.write(b"trailer\n")
+    buf.write(f"<< /Size {n_objects} /Root {CATALOG} 0 R >>\n".encode())
+    buf.write(b"startxref\n")
+    buf.write(f"{xref_offset}\n".encode())
+    buf.write(b"%%EOF\n")
+    out_path.write_bytes(buf.getvalue())
+
+
+def _make_alice_fixture_pdf(out_path: Path) -> None:
+    """Create a minimal multi-page PDF that mimics Alice in Wonderland structure.
+
+    Produces a TOC on page 11 and chapter content pages starting at page 13,
+    matching the structure expected by the ingest pipeline.
+    """
+    pages: list[list[str]] = []
 
     # Pages 1-10: front matter
     for _ in range(10):
-        _add_text_page(writer, ["Front matter"])
+        pages.append(["Front matter"])
 
     # Page 11: TOC
-    toc_lines = ["Table of Contents"] + [
-        f"{num} {title} {page}" for num, title, page in _FIXTURE_CHAPTERS
-    ]
-    _add_text_page(writer, toc_lines)
+    pages.append(
+        ["Table of Contents"] + [f"{num} {title} {page}" for num, title, page in _FIXTURE_CHAPTERS]
+    )
 
     # Page 12: separator
-    _add_text_page(writer, [""])
+    pages.append([""])
 
     # Pages 13-89: chapter content
     chapter_by_page = {page: (num, title) for num, title, page in _FIXTURE_CHAPTERS}
@@ -98,17 +139,22 @@ def _make_alice_fixture_pdf(out_path: Path) -> None:
                 "Alice had many more adventures to come.",
                 "She was curious about everything around her.",
             ]
-        _add_text_page(writer, lines)
+        pages.append(lines)
 
-    buf = io.BytesIO()
-    writer.write(buf)
-    out_path.write_bytes(buf.getvalue())
+    _write_raw_pdf(pages, out_path)
 
 
 def _get_alice_pdf(tmp_dir: Path) -> Path:
-    """Return the real Alice PDF if present, else create and return a fixture."""
+    """Return a fixture PDF for testing.
+
+    Uses the real Alice PDF only when the ``USE_REAL_PDF_TESTS`` environment
+    variable is set to a non-empty value, so that unit tests are deterministic
+    by default.
+    """
+    import os
+
     real = Path(__file__).resolve().parent.parent / "carroll-1865.pdf"
-    if real.exists():
+    if os.environ.get("USE_REAL_PDF_TESTS") and real.exists():
         return real
     fixture = tmp_dir / "alice-fixture.pdf"
     _make_alice_fixture_pdf(fixture)

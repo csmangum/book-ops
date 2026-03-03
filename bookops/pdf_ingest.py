@@ -117,12 +117,14 @@ def detect_chapters_from_pdf(
     pdf_path: Path,
     skip_pages: int = 12,
     toc_page: int = 11,
+    reader: PdfReader | None = None,
 ) -> list[ChapterInfo]:
     """
     Detect chapter boundaries from PDF.
     Uses TOC page if available, else scans for "Chapter N" headings.
     """
-    reader = PdfReader(str(pdf_path))
+    if reader is None:
+        reader = PdfReader(str(pdf_path))
     # Try TOC first (Alice has it on page 11)
     if toc_page <= len(reader.pages):
         toc_text = reader.pages[toc_page - 1].extract_text() or ""
@@ -146,9 +148,11 @@ def extract_chapter_text(
     pdf_path: Path,
     start_page: int,
     end_page: int,
+    reader: PdfReader | None = None,
 ) -> str:
     """Extract text for a chapter from start_page to end_page (1-based, inclusive)."""
-    reader = PdfReader(str(pdf_path))
+    if reader is None:
+        reader = PdfReader(str(pdf_path))
     parts = []
     for i in range(start_page - 1, min(end_page, len(reader.pages))):
         raw = reader.pages[i].extract_text()
@@ -181,7 +185,8 @@ def ingest_pdf_to_chapters(
     if not pdf_path.exists():
         raise FileNotFoundError(f"PDF not found: {pdf_path}")
 
-    chapters = detect_chapters_from_pdf(pdf_path, skip_pages=skip_pages, toc_page=toc_page)
+    reader = PdfReader(str(pdf_path))
+    chapters = detect_chapters_from_pdf(pdf_path, skip_pages=skip_pages, toc_page=toc_page, reader=reader)
     if not chapters:
         raise ValueError("No chapters detected in PDF")
 
@@ -191,7 +196,7 @@ def ingest_pdf_to_chapters(
     for i, ch in enumerate(chapters):
         start = ch.start_page
         end = chapters[i + 1].start_page - 1 if i + 1 < len(chapters) else 999
-        text = extract_chapter_text(pdf_path, start, end)
+        text = extract_chapter_text(pdf_path, start, end, reader=reader)
 
         # Remove "Chapter N" and title line from start (we'll add as markdown header)
         text = _strip_chapter_header_from_body(text, ch.number, ch.title)
