@@ -60,6 +60,8 @@ def build_parser() -> argparse.ArgumentParser:
     p_ingest.add_argument("--build", action="store_true", help="Run indexer build after ingest")
     p_ingest.add_argument("--skip-pages", type=int, default=None, help="Skip first N pages (front matter)")
     p_ingest.add_argument("--toc-page", type=int, default=None, help="Page number of table of contents (1-based)")
+    p_ingest.add_argument("--index-dir", default=None, help="Index persistence directory (default: .book_index)")
+    p_ingest.add_argument("--book-id", default=None, help="Book ID for act mapping (e.g. alice, last_pure_thing)")
 
     p_template = sub.add_parser("template", help="Template operations")
     p_template_sub = p_template.add_subparsers(dest="template_cmd")
@@ -211,6 +213,10 @@ def main(argv: list[str] | None = None) -> int:
             cmd.extend(["--skip-pages", str(args.skip_pages)])
         if getattr(args, "toc_page", None) is not None:
             cmd.extend(["--toc-page", str(args.toc_page)])
+        if getattr(args, "index_dir", None):
+            cmd.extend(["--index-dir", str(Path(args.index_dir).resolve())])
+        if getattr(args, "book_id", None):
+            cmd.extend(["--book-id", args.book_id])
         return subprocess.run(cmd).returncode
 
     if args.command == "template":
