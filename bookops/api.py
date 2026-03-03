@@ -108,7 +108,7 @@ def run_agent_endpoint(body: dict[str, Any]) -> dict[str, Any]:
             config=config,
         )
         return _envelope(ok=True, exit_code=0, stderr="", data=result.to_dict())
-    except ValueError as e:
+    except (ValueError, KeyError) as e:
         return _envelope(ok=False, data={}, exit_code=1, stderr=str(e))
 
 

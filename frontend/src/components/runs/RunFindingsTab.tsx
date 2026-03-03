@@ -4,17 +4,8 @@ import { FindingCard } from "@/components/chapters/FindingCard";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { useChapterArtifact } from "@/hooks/useChapterArtifact";
 import { useProjectArtifact } from "@/hooks/useProjectArtifact";
+import { asArray, asRecord } from "@/lib/guards";
 import type { RunHistoryEntry } from "@/lib/run-history";
-
-function asArray<T>(v: unknown): T[] {
-  if (Array.isArray(v)) return v as T[];
-  return [];
-}
-
-function asRecord(v: unknown): Record<string, unknown> | null {
-  if (v && typeof v === "object" && !Array.isArray(v)) return v as Record<string, unknown>;
-  return null;
-}
 
 export function RunFindingsTab({ run }: { run: RunHistoryEntry }) {
   const chapterId = run.chapterId;
@@ -24,10 +15,10 @@ export function RunFindingsTab({ run }: { run: RunHistoryEntry }) {
   const openIssuesQuery = useProjectArtifact("open-issues", { enabled: !isChapter });
 
   const chapterFindings = asArray<Record<string, unknown>>(
-    asRecord(analysisQuery.data)?.generated_findings,
+    asRecord(analysisQuery.data)?.generated_findings ?? [],
   );
   const projectIssues = asArray<Record<string, unknown>>(
-    asRecord(openIssuesQuery.data)?.issues,
+    asRecord(openIssuesQuery.data)?.issues ?? [],
   );
 
   const findings = isChapter ? chapterFindings : projectIssues;

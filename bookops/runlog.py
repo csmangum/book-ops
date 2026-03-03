@@ -78,7 +78,6 @@ def write_decision_log(
         "generated_at": utc_now_iso(),
     }
 
-    agent_line = f"- Agents: {len(agent_summaries)} ran" if agent_summaries else ""
     md_lines = [
         "# Decision Log",
         "",
@@ -88,9 +87,10 @@ def write_decision_log(
         f"- Gate Message: {gate.get('message', '')}",
         f"- Findings: {payload['analysis_counts']['total_findings']} (hard: {hard_count}, soft: {soft_count})",
         f"- Lore proposals: {payload['lore_proposal_count']}",
-        agent_line,
-        "",
     ]
+    if agent_summaries:
+        md_lines.append(f"- Agents: {len(agent_summaries)} ran")
+    md_lines.append("")
     md_path = output_dir / "decision-log.md"
     json_path = output_dir / "decision-log.json"
     write_text(md_path, "\n".join(md_lines))

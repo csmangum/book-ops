@@ -60,8 +60,15 @@ def build_context_pack(
             ]
         timeline = canon.get("timeline", {})
         chapter_days = timeline.get("chapter_days", {})
+        filtered_chapter_days = {}
+        for k, v in chapter_days.items():
+            try:
+                if int(k) <= scope_id:
+                    filtered_chapter_days[k] = v
+            except ValueError:
+                pass
         pack["canon_slices"] = {
-            "chapter_days": {k: v for k, v in chapter_days.items() if int(k) <= scope_id},
+            "chapter_days": filtered_chapter_days,
             "dates": [d for d in timeline.get("dates", []) if d.get("chapter", 0) <= scope_id],
             "times": [t for t in timeline.get("times", []) if t.get("chapter", 0) <= scope_id],
             "entities": canon.get("entities", [])[:50],

@@ -4,17 +4,8 @@ import { GateBadge } from "@/components/shared/GateBadge";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { useChapterArtifact } from "@/hooks/useChapterArtifact";
 import { useProjectArtifact } from "@/hooks/useProjectArtifact";
+import { asArray, asRecord } from "@/lib/guards";
 import type { RunHistoryEntry } from "@/lib/run-history";
-
-function asArray<T>(v: unknown): T[] {
-  if (Array.isArray(v)) return v as T[];
-  return [];
-}
-
-function asRecord(v: unknown): Record<string, unknown> | null {
-  if (v && typeof v === "object" && !Array.isArray(v)) return v as Record<string, unknown>;
-  return null;
-}
 
 export function RunGateTab({ run }: { run: RunHistoryEntry }) {
   const chapterId = run.chapterId;
@@ -49,8 +40,8 @@ export function RunGateTab({ run }: { run: RunHistoryEntry }) {
   const gate = asRecord(gateData);
   const status = String(gate?.status ?? run.gate ?? "unknown");
   const message = String(gate?.message ?? "");
-  const blockingIds = asArray<string>(gate?.blocking_issue_ids);
-  const warningIds = asArray<string>(gate?.warning_issue_ids);
+  const blockingIds = asArray<string>(gate?.blocking_issue_ids ?? []);
+  const warningIds = asArray<string>(gate?.warning_issue_ids ?? []);
 
   return (
     <div className="space-y-4">
