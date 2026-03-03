@@ -1139,6 +1139,7 @@ components:
           description: Agent run results (chapter runs only)
         decision_log:
           type: object
+          additionalProperties: true
           description: Decision log payload (when available)
     RunsListData:
       type: object

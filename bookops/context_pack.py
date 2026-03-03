@@ -6,7 +6,6 @@ per the agent contract.
 
 from __future__ import annotations
 
-from pathlib import Path
 from typing import Any
 
 from .canon import build_canon, load_snapshot

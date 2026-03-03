@@ -18,15 +18,17 @@ def get_run(config: RuntimeConfig, run_id: str) -> dict[str, Any] | None:
     entry = get_run_entry(config.run_history_file, run_id)
     if not entry:
         return None
-    report_dir_str = entry.get("report_dir", "")
-    if report_dir_str and (report_dir := Path(report_dir_str)).exists():
-        decision_log = load_json(report_dir / "decision-log.json", default={}) or {}
-        agent_results = load_json(report_dir / "agent-results.json", default=[])
-        if isinstance(agent_results, list):
-            entry["agent_results"] = agent_results
-        else:
-            entry["agent_results"] = []
-        entry["decision_log"] = decision_log
+    report_dir_str = entry.get("report_dir")
+    if isinstance(report_dir_str, str) and report_dir_str.strip():
+        report_dir = Path(report_dir_str)
+        if report_dir.is_dir():
+            decision_log = load_json(report_dir / "decision-log.json", default={}) or {}
+            agent_results = load_json(report_dir / "agent-results.json", default=[])
+            if isinstance(agent_results, list):
+                entry["agent_results"] = agent_results
+            else:
+                entry["agent_results"] = []
+            entry["decision_log"] = decision_log
     return entry
 
 
