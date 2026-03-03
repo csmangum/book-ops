@@ -144,7 +144,7 @@ Provide a brief summary and confidence (0-1). Set needs_human_decision true if a
     crew = Crew(agents=[agent], tasks=[task])
     result = crew.kickoff()
 
-    if not result.tasks or not result.tasks[0].output:
+    if not result.tasks_output or not result.tasks_output[0].pydantic:
         return AgentResult(
             name=agent_name,
             summary=f"{agent_name} completed but produced no structured output.",
@@ -154,7 +154,7 @@ Provide a brief summary and confidence (0-1). Set needs_human_decision true if a
             needs_human_decision=False,
         )
 
-    out = result.tasks[0].output
+    out = result.tasks_output[0].pydantic
     findings = [
         {
             "rule_id": f.rule_id,

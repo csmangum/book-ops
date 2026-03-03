@@ -18,8 +18,8 @@ def get_run(config: RuntimeConfig, run_id: str) -> dict[str, Any] | None:
     entry = get_run_entry(config.run_history_file, run_id)
     if not entry:
         return None
-    report_dir = Path(entry.get("report_dir", ""))
-    if report_dir.exists():
+    report_dir_str = entry.get("report_dir", "")
+    if report_dir_str and (report_dir := Path(report_dir_str)).exists():
         decision_log = load_json(report_dir / "decision-log.json", default={}) or {}
         agent_results = load_json(report_dir / "agent-results.json", default=[])
         if isinstance(agent_results, list):
