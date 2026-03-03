@@ -66,13 +66,24 @@ def run_agent(
     if name not in AGENTS:
         raise ValueError(f"Unknown agent: {name}")
 
+    import sys
+
     from .crewai_adapter import _has_llm_api_key, is_crewai_available, run_crewai_agent
 
     if config and is_crewai_available() and _has_llm_api_key():
         try:
             return run_crewai_agent(name, config, scope, scope_id)
-        except Exception:
-            pass
+        except Exception as exc:
+            print(f"[bookops] CrewAI agent '{name}' failed: {exc}", file=sys.stderr)
+            suffix = f" {scope_id}" if scope_id is not None else ""
+            return AgentResult(
+                name=name,
+                summary=f"{name} failed for {scope}{suffix}: {exc}",
+                findings=[],
+                proposals=[],
+                confidence=0.0,
+                needs_human_decision=True,
+            )
 
     suffix = f" {scope_id}" if scope_id is not None else ""
     return AgentResult(
