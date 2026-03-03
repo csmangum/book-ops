@@ -1,14 +1,13 @@
 # BookOps
 
-BookOps is a local-first editorial QA framework for long-form writing, with:
+BookOps is a local-first agentic framework for book-writing with continuity enforcement, lore synchronization, and editorial workflow automation. A Next.js frontend (`frontend/`) provides the Writer Ops Console; a FastAPI backend serves `/api/*` and the CLI covers analysis, gating, lore sync, reports, and issue lifecycle.
 
-- CLI workflows for analysis, gating, lore sync, reports, and issue lifecycle
-- FastAPI backend exposing `/api/*` endpoints for frontend orchestration
-- Next.js frontend (`frontend/`) implementing the Writer Ops Console
+## Prerequisites
 
-## Quick start
+- Python 3.12
+- Node.js and npm (only if you run the frontend)
 
-## 1) Python environment + dependencies
+## Backend: install and run
 
 ```bash
 python3.12 -m venv .venv
@@ -16,47 +15,55 @@ source .venv/bin/activate
 pip install -r requirements-bookops.txt
 ```
 
-## 2) Initialize project scaffolding
+Set environment (e.g. project root and report output):
+
+```bash
+export BOOKOPS_PROJECT=/path/to/your/project
+export BOOKOPS_OUTPUT_DIR=reports
+```
+
+Bootstrap project files, then start the API:
 
 ```bash
 python -m bookops init
-```
-
-## 3) Run API server
-
-```bash
-export BOOKOPS_PROJECT=/workspace
-export BOOKOPS_OUTPUT_DIR=reports
+# optional: python -m bookops init --template noir
 uvicorn bookops.api:app --reload --host 0.0.0.0 --port 8000
 ```
 
-## 4) Run frontend
+## Frontend: install and run
 
 ```bash
 cd frontend
 npm install
 cp .env.example .env.local
-# set NEXT_PUBLIC_API_URL if needed, e.g. http://localhost:8000/api
+```
+
+Set `NEXT_PUBLIC_API_URL` in `.env.local` if needed (e.g. `http://localhost:8000/api`), then:
+
+```bash
 npm run dev
 ```
 
 ## Testing
 
 ```bash
-# Backend unit + integration tests (pytest)
-pip install -r requirements-bookops.txt
+# Backend (from repo root, with venv activated)
 pytest tests/ -v
 
-# Frontend unit tests (Vitest)
+# Frontend unit tests
 cd frontend && npm run test
 
-# E2E tests (Playwright; starts backend + frontend)
+# E2E (Playwright; uses backend + frontend)
 cd frontend && npm run test:e2e
 ```
 
-## Useful docs
+## Documentation
 
-- `docs/bookops-operations-runbook.md`
-- `docs/bookops-backend-api-contract.md`
-- `docs/bookops-frontend-ui.md`
-- `docs/bookops-frontend-component-tree.md`
+- [bookops-operations-runbook.md](docs/bookops-operations-runbook.md) — Prerequisites, first-time setup, daily CLI workflows (analyze, gate, report, lore, issues, runs)
+- [bookops-architecture.md](docs/bookops-architecture.md) — System layout, modules, execution flow, gate semantics
+- [bookops-backend-api-contract.md](docs/bookops-backend-api-contract.md) — FastAPI endpoints and response envelope for the frontend
+- [bookops-frontend-ui.md](docs/bookops-frontend-ui.md) — Writer Ops Console UI blueprint and route overview
+- [bookops-frontend-component-tree.md](docs/bookops-frontend-component-tree.md) — Next.js App Router component tree
+- [bookops-rule-authoring.md](docs/bookops-rule-authoring.md) — Rules in `canon/rules.yaml`: kinds, thresholds, templates
+- [bookops-agent-contract.md](docs/bookops-agent-contract.md) — Role-based editorial agents: registry, I/O contract, stubs
+
