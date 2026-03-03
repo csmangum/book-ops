@@ -1,0 +1,23 @@
+version: 1
+project:
+  chapters_dir: chapters
+  lore_dir: lore
+  guides:
+  - writing-guide.md
+  - editing-guide.md
+  - outline.md
+  - edits.md
+paths:
+  bookops_dir: .bookops
+  index_dir: .bookops/index
+  snapshots_dir: .bookops/snapshots
+  issues_file: .bookops/issues.json
+  run_history_file: .bookops/runs.json
+  canon_latest: .bookops/canon-latest.json
+gates:
+  fail_on_unresolved_severity:
+  - critical
+  allow_waivers_for:
+  - high
+  - medium
+  - low

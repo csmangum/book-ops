@@ -19,12 +19,49 @@ to model-backed agents.
 
 ## Output contract (`AgentResult`)
 
-- `name`
-- `summary`
-- `findings`: structured observations
-- `proposals`: concrete suggested edits/actions
+- `name`: agent identifier
+- `summary`: short human-readable summary of the run
+- `findings`: list of structured observations (each with rule_id, severity, message, evidence, etc.)
+- `proposals`: list of concrete suggested edits/actions (e.g. lore update proposals, text edits)
 - `confidence`: float 0..1
 - `needs_human_decision`: bool
+
+**Example `AgentResult` (JSON-friendly):**
+
+```json
+{
+  "name": "continuity_guardian",
+  "summary": "continuity_guardian executed for chapter 3. One timeline inconsistency suggested.",
+  "findings": [
+    {
+      "rule_id": "HARD.TIMELINE.DAY_SEQUENCE",
+      "severity": "high",
+      "message": "Day 4 appears after Day 5 in chapter.",
+      "evidence": [
+        { "file": "chapters/ch03.md", "line_start": 12, "line_end": 12, "excerpt": "Day 4 dawned." }
+      ]
+    }
+  ],
+  "proposals": [],
+  "confidence": 0.85,
+  "needs_human_decision": true
+}
+```
+
+## Pipeline integration
+
+- **Default chapter pipeline** runs four agents in order: `developmental_editor` → `continuity_guardian` → `line_editor` → `proofreader` (see `DEFAULT_CHAPTER_AGENT_FLOW` in `bookops/pipeline.py`). The project pipeline does not run agents.
+- **Current behavior:** These are **stubs**. `run_agent` returns a placeholder `AgentResult` (e.g. empty findings/proposals, fixed confidence); no files are written and the pipeline does not yet merge agent findings into the issue store or agent proposals into lore.
+- **Model-backed extension:** When adding real agents, findings should be converted to the same shape as analyzer findings and merged into the issue store (e.g. via the same fingerprint/merge logic in `bookops/issues.py`). Proposals (e.g. lore updates) should flow through the existing lore proposal/approve/sync path so that manuscript-over-lore policy and auditability are preserved.
+
+## Context pack (future)
+
+The input contract reserves a **context_pack** for future use. Intended contents so implementers can design against a stable shape:
+
+- **chapter excerpts:** Selected passages from the target chapter (e.g. by section or line range) as plain text or structured spans, for context without sending the full manuscript.
+- **canon slices:** Subset of the canon payload relevant to the scope (e.g. timeline entries for the chapter’s days, entities mentioned in the chapter) so the agent can check continuity without loading the full canon.
+- **open issues:** List of open (and optionally in_progress) issues for the scope (chapter or project) so the agent can avoid duplicating known issues and can reference them in summaries.
+- **rule snippets:** Relevant rule definitions (id, message, params) for the detectors that apply to this scope, so the agent can align findings with rule IDs and severities.
 
 ## Operational rules
 
