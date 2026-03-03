@@ -1,6 +1,6 @@
 # BookOps
 
-BookOps is a local-first agentic framework for book-writing with continuity enforcement, lore synchronization, and editorial workflow automation. A Next.js frontend (`frontend/`) provides the Writer Ops Console; a FastAPI backend serves `/api/*` and the CLI covers analysis, gating, lore sync, reports, and issue lifecycle.
+BookOps is a local-first agentic framework for book-writing with continuity enforcement, lore synchronization, and editorial workflow automation. **Local-first** means your manuscript, canon, and runtime state live on disk; no cloud is required, and the API/CLI operate on the directory set in `BOOKOPS_PROJECT`. A Next.js frontend (`frontend/`) provides the Writer Ops Console; a FastAPI backend serves `/api/*` and the CLI covers analysis, gating, lore sync, reports, and issue lifecycle.
 
 ## Prerequisites
 

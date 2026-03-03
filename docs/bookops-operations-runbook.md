@@ -1,5 +1,7 @@
 # BookOps Operations Runbook
 
+An **operations runbook** is a step-by-step reference for running and maintaining BookOps in production or development. It covers setup, daily workflows (chapters, project health, lore sync), issue handling, and troubleshooting so operators can run gates, build reports, and fix problems without hunting through code or docs.
+
 ## Prerequisites
 
 ```bash
@@ -94,6 +96,33 @@ python -m bookops settings patch --patch-json '{"project":{"chapters_dir":"chapt
 - `2` fail (blocking)
 - `3` pass with waivers
 
+## When to use `--strict`
+
+Use `--strict` when the gate should treat **warnings as blocking** (e.g. CI or pre-release). Normally only issues at severities in `fail_on_unresolved_severity` (e.g. `critical`) block the gate; with `--strict`, open issues at `high`, `medium`, or `low` also count as blocking. Example:
+
+```bash
+python -m bookops --format both pipeline run project --strict
+```
+
+## Expected output (snippets)
+
+**Pipeline run chapter (success):** With `--format json`, stdout is JSON. You should see a payload with `run_id`, `gate` (e.g. `"status": "pass"` or `"fail"`), and `run` (report_dir, decision_log path). Example shape:
+
+```json
+{ "analysis": { ... }, "lore_delta": { ... }, "gate": { "status": "pass", "message": "Gate passed." }, "run": { "run_id": "...", "report_dir": "...", ... } }
+```
+
+**Issue list:** With `--format json`, output includes an `issues` array (or equivalent from the CLI). Each issue has `id`, `rule_id`, `severity`, `status`, `scope`, `message`. Use `--scope chapter:<N>` or `--status open` to narrow.
+
+## Report build output
+
+`report build --scope chapter --id <N>` (or `--scope project` without `--id`) (re)generates the standard reports for that scope. Outputs are written under:
+
+- **Chapter:** `reports/chapter-<N>/` — analysis.md/json, gate.md/json, continuity.md/json, style-audit.md/json, lore-delta.md/json, decision-log.md/json.
+- **Project:** `reports/project/` — analysis, gate, open-issues, resolved-issues, timeline-status, motif-dashboard, decision-log (md/json per `--format`).
+
+Paths are relative to `BOOKOPS_OUTPUT_DIR` (default `reports`). Running the pipeline for that scope also produces these same files.
+
 ## Common troubleshooting
 
 ### `venv` creation fails (`ensurepip` missing)
@@ -108,3 +137,7 @@ python -m bookops settings patch --patch-json '{"project":{"chapters_dir":"chapt
 - Run `issue list` with severity filters.
 - Confirm unresolved `critical` issues.
 - Use waiver only with explicit rationale.
+
+### `canon build` or `index rebuild` fails
+- **Missing chapters dir:** Ensure `chapters/` exists under the project root (or the path set in config `project.chapters_dir`). Run `bookops init` if the project is new.
+- **Invalid or missing YAML:** If `canon/rules.yaml` or other canon config is malformed, fix or remove the file and run `bookops init` again to regenerate defaults. For `index rebuild`, ensure no permission errors on project directories; check that excluded dirs (e.g. `.git`, `reports`) are correct.

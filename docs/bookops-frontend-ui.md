@@ -116,6 +116,30 @@ Hard-rule edits require explicit confirmation and changelog note.
 - Reviewer identity defaults
 - CI status
 
+## API backing per screen
+
+Each screen relies on the following API endpoints (see [bookops-backend-api-contract.md](bookops-backend-api-contract.md) for request/response shapes):
+
+| Screen | Main endpoints |
+|--------|-----------------|
+| **Command Center** (`/`) | `GET /api/runs`, `GET /api/issues` (for top blockers), `POST /api/gate/chapter`, `POST /api/gate/project`, `POST /api/pipeline/chapter`, `POST /api/pipeline/project`, `GET /api/index/status` (changed since last run). |
+| **Chapters list** (`/chapters`) | `GET /api/index/status` (chapter catalog, last edited), `GET /api/runs` (last run per scope), `GET /api/issues` (criticals/highs by scope). |
+| **Chapter workbench** (`/chapters/:id`) | `GET /api/chapters/:id/content`, `GET /api/issues` (scope chapter:id), `GET /api/artifacts/chapter/:id/analysis`, `continuity`, `style-audit`, `lore-delta`, `gate`; `POST /api/analyze/chapter`, `POST /api/pipeline/chapter`; `PATCH /api/issues/:issueId`, `POST /api/issues/:issueId/waive`. |
+| **Lore Sync** (`/lore`, `/lore/:proposalId`) | `POST /api/lore/delta`, `POST /api/lore/approve`, `POST /api/lore/sync`; artifact or delta payload for evidence. |
+| **Timeline** (`/timeline`) | `GET /api/canon/graph` or project timeline artifact; `GET /api/artifacts/project/timeline`. |
+| **Canon Graph** (`/canon`) | `GET /api/canon/graph`. |
+| **Rules** (`/rules`) | `GET /api/rules`, `PATCH /api/settings` (if editing config); `POST /api/analyze/chapter` for sandbox run. |
+| **Runs** (`/runs`, `/runs/:runId`) | `GET /api/runs`, `GET /api/runs/:runId`; artifact endpoints for decision-log, gate, analysis. |
+| **Issues** (`/issues`) | `GET /api/issues` (with scope/status/severity), `PATCH /api/issues/:id`, `POST /api/issues/:id/waive`. |
+| **Settings** (`/settings`) | `GET /api/settings`, `PATCH /api/settings`. |
+
+## Empty and error states
+
+Key screens should define consistent **empty** and **error** states:
+
+- **Empty:** No runs yet, no issues, no lore proposals, no chapters in index — show a clear empty state and primary action (e.g. "Run pipeline" or "Run analysis").
+- **Error:** API unreachable, 4xx/5xx, or envelope `ok: false` — show a dismissible banner or inline message with `stderr` or status; do not leave the user on a blank or stale view. Use the same pattern across Command Center, Chapters, Runs, and Issues so behavior is predictable.
+
 ## UX principles
 
 1. Diff-first everywhere

@@ -127,6 +127,37 @@ src/
     useReportOpen.ts
 ```
 
+## Hook to API mapping
+
+Each hook typically wraps one or more API calls. Use this to trace data flow and avoid duplicate requests:
+
+| Hook | Endpoint(s) |
+|------|-------------|
+| `useVersion` | `GET /api/version` |
+| `useIndexStatus` | `GET /api/index/status` (query: `include_symbolic`) |
+| `useAnalyzeChapter` | `POST /api/analyze/chapter` (body: chapter_id, optional checks, since) |
+| `useAnalyzeProject` | `POST /api/analyze/project` (body: optional since) |
+| `useIssueList` | `GET /api/issues` (query: scope, status, severity) |
+| `useIssueUpdate` | `PATCH /api/issues/:issueId` (body: status, note) |
+| `useLoreDelta` | `POST /api/lore/delta` (body: scope, id, since) |
+| `useLoreApprove` | `POST /api/lore/approve` (body: proposal, reviewer, note) |
+| `useLoreSync` | `POST /api/lore/sync` (body: proposal, apply) |
+| `useGateChapter` | `POST /api/gate/chapter` (body: chapter_id, strict) |
+| `useGateProject` | `POST /api/gate/project` (body: optional strict) |
+| `usePipelineRun` | `POST /api/pipeline/chapter` or `POST /api/pipeline/project` (body: chapter_id for chapter, optional strict) |
+| `useReportOpen` | `GET /api/reports/open` (query: scope, id) |
+
+Additional reads (e.g. run list, run detail, chapter content, rules, settings, artifacts) are typically done via direct client calls or dedicated hooks; see [bookops-backend-api-contract.md](bookops-backend-api-contract.md) for the full endpoint list.
+
+## Shared types
+
+Request and response types should come from the **generated API client** so components and hooks share a single source of truth:
+
+- **Schema and types:** `clients/typescript/src/generated/schema.ts` (or equivalent generated from `openapi/bookops-api.openapi.yaml`).
+- **Client:** `clients/typescript/src/client.ts` — use the typed client methods in hooks and data-fetching layers rather than ad-hoc `fetch` and hand-written types.
+
+Use these types for props (e.g. `Issue`, `GateResult`, `Run`, envelope `data` shapes) and for hook return values so the UI stays in sync with the API contract.
+
 ## Route-to-component mapping
 
 - `/`: `GateStatusCards`, `TopBlockersList`, `RecentRunsList`, `QuickActions`
