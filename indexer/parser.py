@@ -73,11 +73,25 @@ class TextUnit:
         }
 
 
+def _chapter_title_from_content(text: str) -> str | None:
+    """Extract chapter title from markdown content (line after # Chapter N)."""
+    lines = text.split("\n")
+    for i, line in enumerate(lines):
+        if line.strip().startswith("# Chapter"):
+            # Title is typically on the next non-empty line
+            for j in range(i + 1, min(i + 3, len(lines))):
+                title = lines[j].strip()
+                if title and not title.startswith("#"):
+                    return title
+    return None
+
+
 def _chapter_title_from_filename(filename: str) -> str:
-    """Extract chapter title from filename (e.g. 7_The Egg and the Bullet.md -> The Egg...)."""
+    """Extract chapter title from filename (e.g. 7_The-Egg-and-the-Bullet.md -> The Egg and the Bullet)."""
     base = filename.replace(".md", "")
     if "_" in base:
-        return base.split("_", 1)[-1].strip()
+        title = base.split("_", 1)[-1].strip()
+        return title.replace("-", " ")
     return base.strip()
 
 
@@ -153,7 +167,6 @@ def _split_sentences(paragraph_text: str) -> list[str]:
 def parse_chapter(
     filepath: Path,
     act_map: dict[int, str] | None = None,
-    act_ranges: dict[str, tuple[int, int]] | None = None,
 ) -> list[TextUnit]:
     """Parse a single chapter file into TextUnits at all levels."""
     text = filepath.read_text(encoding="utf-8")
@@ -162,7 +175,7 @@ def parse_chapter(
     act_map = act_map or ACT_MAP
     act = act_map.get(chapter_num, "Full Book")
 
-    chapter_title = _chapter_title_from_filename(filename)
+    chapter_title = _chapter_title_from_content(text) or _chapter_title_from_filename(filename)
 
     body = _strip_header(text)
     units: list[TextUnit] = []
@@ -234,7 +247,7 @@ def parse_all_chapters(
         raise FileNotFoundError(f"No .md files found in {dir_path}")
 
     act_map = get_act_map(book_id) if book_id else None
-    if act_map and not act_map:
+    if book_id and not act_map:
         act_map = None  # Unknown book_id, fall back to default ACT_MAP
 
     all_units: list[TextUnit] = []
