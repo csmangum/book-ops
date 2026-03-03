@@ -19,10 +19,13 @@ from filelock import FileLock
 from rank_bm25 import BM25Okapi
 from sentence_transformers import SentenceTransformer
 
+from .book_config import get_act_chapter_ranges
 from .parser import TextUnit, parse_all_chapters, build_act_units
 
 INDEX_DIR = Path(__file__).resolve().parent.parent / ".book_index"
 MODEL_NAME = "all-mpnet-base-v2"
+
+INDEX_LEVELS = ("sentence", "paragraph", "beat", "scene", "chapter", "act")
 
 
 def _truncate_for_embedding(text: str, max_chars: int = 1500) -> str:
@@ -58,7 +61,14 @@ def _content_hash(units: list[TextUnit]) -> str:
     h = hashlib.sha256()
     for u in units:
         h.update(u.text.encode("utf-8"))
-        for val in (u.act, str(u.chapter_num), str(u.scene_idx), str(u.paragraph_idx), str(u.sentence_idx)):
+        for val in (
+            u.act,
+            str(u.chapter_num),
+            str(u.scene_idx),
+            str(u.beat_idx),
+            str(u.paragraph_idx),
+            str(u.sentence_idx),
+        ):
             h.update(val.encode("utf-8"))
             h.update(b"\x00")
     return h.hexdigest()[:16]
@@ -72,10 +82,12 @@ class BookIndex:
         model_name: str = MODEL_NAME,
         persist_dir: Path | None = None,
         chapters_dir: Path | None = None,
+        book_id: str | None = None,
     ):
         self.persist_dir = persist_dir or INDEX_DIR
         self.persist_dir.mkdir(parents=True, exist_ok=True)
         self._chapters_dir = chapters_dir
+        self._book_id = book_id
         self._model_name = model_name
         self._model: SentenceTransformer | None = None
         self.client = chromadb.PersistentClient(path=str(self.persist_dir / "chromadb"))
@@ -97,15 +109,19 @@ class BookIndex:
 
     def build(self, force: bool = False) -> dict[str, int]:
         """Parse the manuscript and build/rebuild the index. Returns counts per level."""
-        all_units = parse_all_chapters(chapters_dir=self._chapters_dir)
-        act_units = build_act_units(all_units)
+        all_units = parse_all_chapters(
+            chapters_dir=self._chapters_dir,
+            book_id=self._book_id,
+        )
+        act_ranges = get_act_chapter_ranges(self._book_id) if self._book_id else None
+        act_units = build_act_units(all_units, act_ranges=act_ranges)
         all_units.extend(act_units)
 
         content_hash = _content_hash(all_units)
         hash_file = self.persist_dir / "content_hash"
         if not force and hash_file.exists() and hash_file.read_text().strip() == content_hash:
             counts = {}
-            for level in ("sentence", "paragraph", "scene", "chapter", "act"):
+            for level in INDEX_LEVELS:
                 col = self._get_collection(level)
                 counts[level] = col.count()
             return counts
@@ -114,7 +130,7 @@ class BookIndex:
         with lock:
             if not force and hash_file.exists() and hash_file.read_text().strip() == content_hash:
                 counts = {}
-                for level in ("sentence", "paragraph", "scene", "chapter", "act"):
+                for level in INDEX_LEVELS:
                     col = self._get_collection(level)
                     counts[level] = col.count()
                 return counts
@@ -185,7 +201,7 @@ class BookIndex:
 
         Args:
             text: The query string.
-            level: One of "sentence", "paragraph", "scene", "chapter", "act".
+            level: One of "sentence", "paragraph", "beat", "scene", "chapter", "act".
             n_results: Number of results to return.
             where: Optional ChromaDB metadata filter, e.g. {"act": "Act I – The Hire"}
                    or {"chapter_num": 7}.
@@ -231,7 +247,7 @@ class BookIndex:
 
         Args:
             text: The query string.
-            level: One of "sentence", "paragraph", "scene", "chapter", "act".
+            level: One of "sentence", "paragraph", "beat", "scene", "chapter", "act".
             n_results: Number of results to return.
             where: Optional ChromaDB metadata filter (applied to semantic results;
                    BM25 results are filtered post-merge).
@@ -327,9 +343,10 @@ class BookIndex:
         within those chapters.
         """
         HIERARCHY: dict[str, list[str]] = {
-            "act": ["chapter", "scene", "paragraph", "sentence"],
-            "chapter": ["scene", "paragraph", "sentence"],
-            "scene": ["paragraph", "sentence"],
+            "act": ["chapter", "scene", "beat", "paragraph", "sentence"],
+            "chapter": ["scene", "beat", "paragraph", "sentence"],
+            "scene": ["beat", "paragraph", "sentence"],
+            "beat": ["paragraph", "sentence"],
             "paragraph": ["sentence"],
         }
         valid_drill = HIERARCHY.get(top_level, [])
@@ -352,6 +369,12 @@ class BookIndex:
                 where_filter = {
                     "chapter_num": meta["chapter_num"],
                     "scene_idx": meta["scene_idx"],
+                }
+            elif top_level == "beat":
+                where_filter = {
+                    "chapter_num": meta["chapter_num"],
+                    "scene_idx": meta["scene_idx"],
+                    "beat_idx": meta["beat_idx"],
                 }
             elif top_level == "paragraph":
                 where_filter = {
@@ -387,7 +410,7 @@ class BookIndex:
 
     def stats(self) -> dict[str, int]:
         counts = {}
-        for level in ("sentence", "paragraph", "scene", "chapter", "act"):
+        for level in INDEX_LEVELS:
             col = self._get_collection(level)
             counts[level] = col.count()
         return counts

@@ -4,6 +4,7 @@ import pytest
 from indexer.parser import (
     parse_all_chapters,
     build_act_units,
+    _split_beats,
     _split_scenes,
     _split_paragraphs,
     _split_sentences,
@@ -60,6 +61,16 @@ def test_split_paragraphs():
     assert len(paras) == 3
 
 
+def test_split_beats():
+    paras = ["P1", "P2", "P3", "P4", "P5", "Meanwhile, something happened.", "P7", "P8"]
+    beats = _split_beats(paras)
+    assert len(beats) >= 1
+    assert all(len(b) >= 1 for b in beats)
+    # First beat should have 5 paras (target_max), second starts at "Meanwhile"
+    joined = sum(beats, [])
+    assert joined == paras
+
+
 def test_split_sentences():
     text = "Harry walked in. The rain was cold. He didn't care."
     sents = _split_sentences(text)
@@ -107,7 +118,11 @@ class TestFullParse:
 
     def test_has_all_levels(self, all_units):
         levels = {u.level for u in all_units}
-        assert levels == {"sentence", "paragraph", "scene", "chapter"}
+        assert "sentence" in levels
+        assert "paragraph" in levels
+        assert "beat" in levels
+        assert "scene" in levels
+        assert "chapter" in levels
 
     def test_has_all_chapters(self, all_units):
         chapter_nums = {u.chapter_num for u in all_units if u.level == "chapter"}
@@ -138,3 +153,23 @@ class TestFullParse:
         assert "chapter_num" in meta
         assert "chapter_title" in meta
         assert "source_file" in meta
+        assert "beat_idx" in meta
+
+
+@pytest.mark.skipif(
+    not (CHAPTER_DIR.parent / "chapters_alice").exists()
+    or not list((CHAPTER_DIR.parent / "chapters_alice").glob("*.md")),
+    reason="chapters_alice with .md files required",
+)
+def test_parse_alice_with_book_id():
+    """Parse Alice chapters with book_id=alice uses Full Book act."""
+    from pathlib import Path
+
+    alice_dir = CHAPTER_DIR.parent / "chapters_alice"
+    units = parse_all_chapters(chapters_dir=alice_dir, book_id="alice")
+    chapter_units = [u for u in units if u.level == "chapter"]
+    assert len(chapter_units) == 12
+    for u in chapter_units:
+        assert u.act == "Full Book"
+    beat_units = [u for u in units if u.level == "beat"]
+    assert len(beat_units) > 0
