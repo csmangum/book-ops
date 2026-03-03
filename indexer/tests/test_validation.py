@@ -41,6 +41,8 @@ EMBEDDING_DIM = 768
 
 @pytest.fixture(scope="module")
 def all_units() -> list[TextUnit]:
+    if not CHAPTER_DIR.exists() or not list(CHAPTER_DIR.glob("*.md")):
+        pytest.skip("Chapters directory with .md files required")
     return parse_all_chapters()
 
 
@@ -59,9 +61,9 @@ def units_by_level(all_units, act_units) -> dict[str, list[TextUnit]]:
 
 
 @pytest.fixture(scope="module")
-def index() -> BookIndex:
+def index(all_units) -> BookIndex:
     tmpdir = Path(tempfile.mkdtemp())
-    idx = BookIndex(persist_dir=tmpdir)
+    idx = BookIndex(persist_dir=tmpdir, chapters_dir=CHAPTER_DIR)
     idx.build(force=True)
     yield idx
     shutil.rmtree(tmpdir, ignore_errors=True)

@@ -11,6 +11,7 @@ from indexer.parser import (
     _chapter_number,
     _chapter_title_from_filename,
     ACT_MAP,
+    CHAPTER_DIR,
 )
 
 
@@ -65,11 +66,40 @@ def test_split_sentences():
     assert len(sents) == 3
 
 
+def test_split_sentences_filters_markdown_artifacts():
+    """Markdown italic markers (*, "*) are not indexed as sentence units."""
+    # Standalone "*" or '"*' are filtered out
+    assert _split_sentences("*") == []
+    assert _split_sentences('"*') == []
+    assert _split_sentences('*"') == []
+    # Real sentences are preserved; "*" alone is filtered
+    sents = _split_sentences("Hello. * Bye.")
+    assert "Hello." in sents
+    assert "*" not in sents
+
+
 def test_act_map_coverage():
     for ch in range(26):
         assert ch in ACT_MAP, f"Chapter {ch} missing from ACT_MAP"
 
 
+def test_parse_all_chapters_raises_when_dir_missing(tmp_path):
+    """parse_all_chapters raises FileNotFoundError when directory does not exist."""
+    missing = tmp_path / "nonexistent"
+    with pytest.raises(FileNotFoundError, match="not found"):
+        parse_all_chapters(chapters_dir=missing)
+
+
+def test_parse_all_chapters_raises_when_no_files(tmp_path):
+    """parse_all_chapters raises FileNotFoundError when directory has no .md files."""
+    with pytest.raises(FileNotFoundError, match="No .md files"):
+        parse_all_chapters(chapters_dir=tmp_path)
+
+
+@pytest.mark.skipif(
+    not CHAPTER_DIR.exists() or not list(CHAPTER_DIR.glob("*.md")),
+    reason="Chapters directory with .md files required",
+)
 class TestFullParse:
     @pytest.fixture(scope="class")
     def all_units(self):

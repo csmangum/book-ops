@@ -7,6 +7,7 @@ from pathlib import Path
 import pytest
 
 from indexer.embedder import BookIndex, _sanitize_metadata, _truncate_for_embedding
+from indexer.parser import CHAPTER_DIR
 
 
 def test_sanitize_metadata_preserves_allowed_types():
@@ -38,11 +39,15 @@ def test_truncate_long_text():
 
 
 @pytest.mark.integration
+@pytest.mark.skipif(
+    not CHAPTER_DIR.exists() or not list(CHAPTER_DIR.glob("*.md")),
+    reason="Chapters directory with .md files required",
+)
 class TestBookIndex:
     @pytest.fixture(scope="class")
     def index(self):
         tmpdir = Path(tempfile.mkdtemp())
-        idx = BookIndex(persist_dir=tmpdir)
+        idx = BookIndex(persist_dir=tmpdir, chapters_dir=CHAPTER_DIR)
         idx.build(force=True)
         yield idx
         shutil.rmtree(tmpdir, ignore_errors=True)
@@ -88,6 +93,17 @@ class TestBookIndex:
         )
         assert len(results) > 0
         assert "_parent" in results[0]
+
+    def test_hierarchical_invalid_drill_raises(self, index):
+        """Invalid drill_level (e.g. sentence -> chapter) raises ValueError."""
+        with pytest.raises(ValueError, match="Cannot drill from"):
+            index.query_hierarchical(
+                "test",
+                top_level="sentence",
+                drill_level="chapter",
+                n_top=1,
+                n_drill=1,
+            )
 
     def test_metadata_roundtrip(self, index):
         """Stored metadata is retrieved unchanged (ChromaDB compatibility)."""

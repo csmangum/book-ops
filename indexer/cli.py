@@ -10,6 +10,9 @@ Usage:
     python -m indexer search "query" -l chapter --chapter 7
     python -m indexer drill "query"      Hierarchical: chapters -> paragraphs
     python -m indexer stats              Show index statistics
+
+Note: BookIndex is lazy-imported inside command handlers to avoid loading the
+~500MB embedding model for lightweight commands (setup, stats).
 """
 
 from __future__ import annotations
@@ -17,6 +20,7 @@ from __future__ import annotations
 import argparse
 import sys
 
+import nltk
 from rich.console import Console
 from rich.table import Table
 from rich.panel import Panel
@@ -37,7 +41,6 @@ def _ensure_index(idx) -> bool:
 
 def cmd_setup(args: argparse.Namespace) -> None:
     """Download NLTK punkt tokenizer data required for sentence splitting."""
-    import nltk
     with console.status("[bold green]Downloading NLTK punkt tokenizer..."):
         nltk.download("punkt")
     console.print("[green]NLTK data ready. You can run 'python -m indexer build'.[/green]")
@@ -71,12 +74,20 @@ def cmd_search(args: argparse.Namespace) -> None:
     if args.chapter is not None:
         where["chapter_num"] = args.chapter
 
-    results = idx.query(
-        args.query,
-        level=args.level,
-        n_results=args.n,
-        where=where or None,
-    )
+    if getattr(args, "hybrid", False):
+        results = idx.query_hybrid(
+            args.query,
+            level=args.level,
+            n_results=args.n,
+            where=where or None,
+        )
+    else:
+        results = idx.query(
+            args.query,
+            level=args.level,
+            n_results=args.n,
+            where=where or None,
+        )
 
     if not results:
         console.print("[yellow]No results found.[/yellow]")
@@ -137,7 +148,6 @@ def cmd_drill(args: argparse.Namespace) -> None:
 
     for i, r in enumerate(results, 1):
         meta = r["metadata"]
-        parent = r.get("_parent", {})
         score = 1 - r["distance"]
 
         header = (
@@ -211,6 +221,8 @@ def main() -> None:
                           help="Filter by act name")
     p_search.add_argument("--chapter", type=int, default=None,
                           help="Filter by chapter number")
+    p_search.add_argument("--hybrid", action="store_true",
+                          help="Use hybrid BM25 + semantic search")
     p_search.set_defaults(func=cmd_search)
 
     # drill

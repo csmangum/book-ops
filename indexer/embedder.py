@@ -4,22 +4,24 @@ Embedding engine and ChromaDB storage for the multi-level semantic index.
 Uses SentenceTransformers for encoding and ChromaDB for storage/retrieval.
 Handles the token-length limits of the embedding model by truncating
 or summarizing long texts at the chapter and act levels.
+Supports BM25 hybrid search for exact-match queries.
 """
 
 from __future__ import annotations
 
 import hashlib
+import pickle
 from pathlib import Path
 
 import chromadb
 from filelock import FileLock
+from rank_bm25 import BM25Okapi
 from sentence_transformers import SentenceTransformer
 
 from .parser import TextUnit, parse_all_chapters, build_act_units
 
 INDEX_DIR = Path(__file__).resolve().parent.parent / ".book_index"
 MODEL_NAME = "all-mpnet-base-v2"
-MAX_SEQ_TOKENS = 384  # model max is 384 tokens; ~1500 chars is safe
 
 
 def _truncate_for_embedding(text: str, max_chars: int = 1500) -> str:
@@ -44,6 +46,11 @@ def _sanitize_metadata(meta: dict) -> dict:
     return out
 
 
+def _tokenize_for_bm25(text: str) -> list[str]:
+    """Simple tokenizer for BM25: lowercase, split on non-alphanumeric."""
+    return [t.lower() for t in text.split() if t]
+
+
 def _content_hash(units: list[TextUnit]) -> str:
     """Hash of all unit texts and key metadata to detect when re-indexing is needed."""
     h = hashlib.sha256()
@@ -58,9 +65,15 @@ def _content_hash(units: list[TextUnit]) -> str:
 class BookIndex:
     """Multi-level semantic index for the manuscript."""
 
-    def __init__(self, model_name: str = MODEL_NAME, persist_dir: Path | None = None):
+    def __init__(
+        self,
+        model_name: str = MODEL_NAME,
+        persist_dir: Path | None = None,
+        chapters_dir: Path | None = None,
+    ):
         self.persist_dir = persist_dir or INDEX_DIR
         self.persist_dir.mkdir(parents=True, exist_ok=True)
+        self._chapters_dir = chapters_dir
         self._model_name = model_name
         self._model: SentenceTransformer | None = None
         self.client = chromadb.PersistentClient(path=str(self.persist_dir / "chromadb"))
@@ -82,7 +95,7 @@ class BookIndex:
 
     def build(self, force: bool = False) -> dict[str, int]:
         """Parse the manuscript and build/rebuild the index. Returns counts per level."""
-        all_units = parse_all_chapters()
+        all_units = parse_all_chapters(chapters_dir=self._chapters_dir)
         act_units = build_act_units(all_units)
         all_units.extend(act_units)
 
@@ -137,6 +150,21 @@ class BookIndex:
 
                 counts[level] = col.count()
 
+                # Build and persist BM25 index for hybrid search
+                tokenized = [_tokenize_for_bm25(t) for t in texts]
+                bm25 = BM25Okapi(tokenized)
+                bm25_path = self.persist_dir / f"bm25_{level}.pkl"
+                with open(bm25_path, "wb") as f:
+                    pickle.dump(
+                        {
+                            "bm25": bm25,
+                            "ids": [u.id for u in units],
+                            "texts": texts,
+                            "metadatas": [_sanitize_metadata(u.metadata) for u in units],
+                        },
+                        f,
+                    )
+
             hash_file.write_text(content_hash)
             return counts
 
@@ -185,6 +213,98 @@ class BookIndex:
             })
         return output
 
+    def query_hybrid(
+        self,
+        text: str,
+        level: str = "paragraph",
+        n_results: int = 10,
+        where: dict | None = None,
+        alpha: float = 0.5,
+    ) -> list[dict]:
+        """
+        Hybrid search combining semantic (vector) and BM25 (keyword) scores via RRF.
+
+        Args:
+            text: The query string.
+            level: One of "sentence", "paragraph", "scene", "chapter", "act".
+            n_results: Number of results to return.
+            where: Optional ChromaDB metadata filter (applied to semantic results;
+                   BM25 results are filtered post-merge).
+            alpha: Not used; RRF is symmetric. Kept for API compatibility.
+
+        Returns:
+            List of result dicts with keys: id, text, metadata, distance.
+        """
+        col = self._get_collection(level)
+        if col.count() == 0:
+            return []
+
+        # Semantic results
+        semantic = self.query(text=text, level=level, n_results=n_results * 2, where=where)
+
+        # BM25 results (no where filter; we filter after merge if needed)
+        bm25_path = self.persist_dir / f"bm25_{level}.pkl"
+        if not bm25_path.exists():
+            return semantic[:n_results]
+
+        with open(bm25_path, "rb") as f:
+            bm25_data = pickle.load(f)
+
+        bm25_obj = bm25_data["bm25"]
+        ids = bm25_data["ids"]
+        texts = bm25_data["texts"]
+        metadatas = bm25_data["metadatas"]
+
+        tokenized_query = _tokenize_for_bm25(text)
+        scores = bm25_obj.get_scores(tokenized_query)
+        top_indices = sorted(
+            range(len(scores)),
+            key=lambda i: scores[i],
+            reverse=True,
+        )[: n_results * 2]
+
+        bm25_results = [
+            {
+                "id": ids[i],
+                "text": texts[i],
+                "metadata": metadatas[i],
+                "distance": 0.0,
+            }
+            for i in top_indices
+            if scores[i] > 0
+        ]
+
+        # Reciprocal Rank Fusion (k=60)
+        k = 60
+        rrf_scores: dict[str, float] = {}
+        for rank, r in enumerate(semantic, 1):
+            doc_id = r["id"]
+            rrf_scores[doc_id] = rrf_scores.get(doc_id, 0) + 1 / (k + rank)
+        for rank, r in enumerate(bm25_results, 1):
+            doc_id = r["id"]
+            rrf_scores[doc_id] = rrf_scores.get(doc_id, 0) + 1 / (k + rank)
+
+        # Build id -> full result map
+        by_id: dict[str, dict] = {r["id"]: r for r in semantic}
+        for r in bm25_results:
+            if r["id"] not in by_id:
+                by_id[r["id"]] = r
+
+        # Sort by RRF score descending, apply where filter if needed
+        sorted_ids = sorted(rrf_scores.keys(), key=lambda x: rrf_scores[x], reverse=True)
+        merged = []
+        for doc_id in sorted_ids:
+            r = by_id[doc_id]
+            if where:
+                meta = r["metadata"]
+                if not all(meta.get(k) == v for k, v in where.items()):
+                    continue
+            merged.append(r)
+            if len(merged) >= n_results:
+                break
+
+        return merged[:n_results]
+
     def query_hierarchical(
         self,
         text: str,
@@ -199,6 +319,19 @@ class BookIndex:
         Example: find the 3 most relevant chapters, then the 5 best paragraphs
         within those chapters.
         """
+        HIERARCHY: dict[str, list[str]] = {
+            "act": ["chapter"],
+            "chapter": ["scene"],
+            "scene": ["paragraph"],
+            "paragraph": ["sentence"],
+        }
+        valid_drill = HIERARCHY.get(top_level, [])
+        if drill_level not in valid_drill:
+            raise ValueError(
+                f"Cannot drill from {top_level!r} to {drill_level!r}. "
+                f"Valid drill levels for {top_level!r}: {valid_drill}"
+            )
+
         top_results = self.query(text, level=top_level, n_results=n_top)
         all_drill = []
 

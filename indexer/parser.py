@@ -15,41 +15,16 @@ import nltk
 
 CHAPTER_DIR = Path(__file__).resolve().parent.parent / "chapters"
 
-ACT_MAP: dict[int, str] = {
-    0: "Prologue",
-    1: "Act I – The Hire",
-    2: "Act I – The Hire",
-    3: "Act I – The Hire",
-    4: "Act I – The Hire",
-    5: "Act I – The Hire",
-    6: "Act I – The Hire",
-    7: "Act II – The Descent",
-    8: "Act II – The Descent",
-    9: "Act II – The Descent",
-    10: "Act II – The Descent",
-    11: "Act II – The Descent",
-    12: "Act II – The Descent",
-    13: "Act II – The Descent",
-    14: "Act II – The Descent",
-    15: "Act II – The Descent",
-    16: "Act II – The Descent",
-    17: "Act II – The Descent",
-    18: "Act II – The Descent",
-    19: "Act III – The Gate",
-    20: "Act III – The Gate",
-    21: "Act III – The Gate",
-    22: "Act III – The Gate",
-    23: "Act III – The Gate",
-    24: "Act III – The Gate",
-    25: "Epilogue",
-}
-
 ACT_CHAPTER_RANGES: dict[str, tuple[int, int]] = {
     "Prologue": (0, 0),
     "Act I – The Hire": (1, 6),
     "Act II – The Descent": (7, 18),
     "Act III – The Gate": (19, 24),
     "Epilogue": (25, 25),
+}
+
+ACT_MAP: dict[int, str] = {
+    ch: act for act, (start, end) in ACT_CHAPTER_RANGES.items() for ch in range(start, end + 1)
 }
 
 
@@ -146,13 +121,19 @@ def _ensure_nltk_punkt() -> None:
         nltk.download("punkt_tab", quiet=True)
 
 
+# Sentences matching this pattern are markdown artifacts (e.g. italic markers)
+# and should not be indexed as standalone units.
+_DEGENERATE_SENTENCE_RE = re.compile(r'^\s*["\']?\*["\']?\s*$')
+
+
 def _split_sentences(paragraph_text: str) -> list[str]:
-    """Tokenize into sentences using NLTK."""
+    """Tokenize into sentences using NLTK. Filters out markdown artifacts."""
     clean = re.sub(r"\s+", " ", paragraph_text).strip()
     if not clean:
         return []
     _ensure_nltk_punkt()
-    return nltk.sent_tokenize(clean)
+    raw = nltk.sent_tokenize(clean)
+    return [s for s in raw if not _DEGENERATE_SENTENCE_RE.match(s)]
 
 
 def parse_chapter(filepath: Path) -> list[TextUnit]:
@@ -224,9 +205,14 @@ def parse_chapter(filepath: Path) -> list[TextUnit]:
     return units
 
 
-def parse_all_chapters() -> list[TextUnit]:
+def parse_all_chapters(chapters_dir: Path | None = None) -> list[TextUnit]:
     """Parse every chapter in the chapters/ directory."""
-    files = sorted(CHAPTER_DIR.glob("*.md"), key=lambda f: _chapter_number(f.name))
+    dir_path = chapters_dir if chapters_dir is not None else CHAPTER_DIR
+    if not dir_path.exists():
+        raise FileNotFoundError(f"Chapters directory not found: {dir_path}")
+    files = sorted(dir_path.glob("*.md"), key=lambda f: _chapter_number(f.name))
+    if not files:
+        raise FileNotFoundError(f"No .md files found in {dir_path}")
     all_units: list[TextUnit] = []
     for f in files:
         all_units.extend(parse_chapter(f))
