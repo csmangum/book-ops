@@ -402,11 +402,15 @@ def artifact_project_motifs() -> dict[str, Any]:
 
 
 def _semantic_index_context() -> tuple[Path, Path]:
-    """Return (chapters_dir, persist_dir) for the semantic index."""
+    """Return (chapters_dir, persist_dir) for the semantic index.
+
+    persist_dir comes from config.paths.semantic_index_dir (default .book_index).
+    For multi-book setups, set semantic_index_dir to e.g. .book_index_alice in
+    .bookops/config.yaml or via settings patch.
+    """
     project_root, _ = _api_context()
     config = load_runtime_config(project_root=project_root)
-    persist_dir = project_root / ".book_index"
-    return config.chapters_dir, persist_dir
+    return config.chapters_dir, config.semantic_index_dir
 
 
 _VALID_LEVELS = {"sentence", "paragraph", "scene", "chapter", "act"}

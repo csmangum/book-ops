@@ -9,6 +9,8 @@ from bookops.pdf_ingest import (
     _clean_text,
     _fix_hyphenation,
     _parse_alice_toc,
+    _slugify_title,
+    _strip_chapter_header_from_body,
     _strip_page_headers,
     detect_chapters_from_pdf,
     extract_text_from_pdf,
@@ -192,6 +194,35 @@ class TestStripPageHeaders(unittest.TestCase):
         result = _strip_page_headers(text)
         self.assertNotIn("CHAPTER 1", result)
         self.assertIn("Alice", result)
+
+
+class TestSlugifyTitle(unittest.TestCase):
+    def test_preserves_apostrophes(self) -> None:
+        self.assertEqual(_slugify_title("Alice's Evidence"), "Alice's_Evidence")
+
+    def test_preserves_hyphens(self) -> None:
+        self.assertEqual(_slugify_title("Down the Rabbit-Hole"), "Down_the_Rabbit-Hole")
+
+    def test_truncates_long_titles(self) -> None:
+        long_title = "A" * 100
+        self.assertEqual(len(_slugify_title(long_title)), 80)
+
+    def test_strips_special_chars(self) -> None:
+        self.assertEqual(_slugify_title("Hello: World!"), "Hello_World")
+
+
+class TestStripChapterHeaderFromBody(unittest.TestCase):
+    def test_removes_chapter_and_title_lines(self) -> None:
+        text = "Chapter 1\n\nDown the Rabbit-Hole\n\nAlice was beginning to get very tired."
+        result = _strip_chapter_header_from_body(text, 1, "Down the Rabbit-Hole")
+        self.assertEqual(result, "Alice was beginning to get very tired.")
+        self.assertNotIn("Chapter 1", result)
+        self.assertNotIn("Down the Rabbit-Hole", result)
+
+    def test_handles_title_in_first_few_lines(self) -> None:
+        text = "Chapter 3\nA Caucus-Race and a Long Tale\n\nFirst paragraph."
+        result = _strip_chapter_header_from_body(text, 3, "A Caucus-Race and a Long Tale")
+        self.assertEqual(result, "First paragraph.")
 
 
 class TestParseAliceToc(unittest.TestCase):

@@ -19,9 +19,12 @@ from __future__ import annotations
 
 import argparse
 import sys
+from pathlib import Path
 
 import nltk
 from rich.console import Console
+
+from bookops.pdf_ingest import ingest_pdf_to_chapters
 from rich.table import Table
 from rich.panel import Panel
 from rich import box
@@ -41,10 +44,6 @@ def _ensure_index(idx) -> bool:
 
 def cmd_ingest_pdf(args: argparse.Namespace) -> None:
     """Extract PDF, detect chapters, write Markdown, optionally run indexer build."""
-    from pathlib import Path
-
-    from bookops.pdf_ingest import ingest_pdf_to_chapters
-
     pdf_path = Path(args.pdf).resolve()
     if args.chapters_dir:
         chapters_dir = Path(args.chapters_dir).resolve()
@@ -66,6 +65,7 @@ def cmd_ingest_pdf(args: argparse.Namespace) -> None:
         console.print(f"  [dim]... and {len(written) - 5} more[/dim]")
 
     if args.build:
+        # Lazy import: BookIndex loads ~500MB embedding model
         from .embedder import BookIndex
 
         book_id = getattr(args, "book_id", None)
@@ -94,8 +94,7 @@ def cmd_setup(args: argparse.Namespace) -> None:
 
 
 def cmd_build(args: argparse.Namespace) -> None:
-    from pathlib import Path
-
+    # Lazy import: BookIndex loads ~500MB embedding model
     from .embedder import BookIndex
 
     persist_dir = Path(args.index_dir).resolve() if getattr(args, "index_dir", None) else None
@@ -119,8 +118,7 @@ def cmd_build(args: argparse.Namespace) -> None:
 
 
 def cmd_search(args: argparse.Namespace) -> None:
-    from pathlib import Path
-
+    # Lazy import: BookIndex loads ~500MB embedding model
     from .embedder import BookIndex
 
     persist_dir = Path(args.index_dir).resolve() if getattr(args, "index_dir", None) else None
@@ -189,8 +187,7 @@ def cmd_search(args: argparse.Namespace) -> None:
 
 
 def cmd_drill(args: argparse.Namespace) -> None:
-    from pathlib import Path
-
+    # Lazy import: BookIndex loads ~500MB embedding model
     from .embedder import BookIndex
 
     persist_dir = Path(args.index_dir).resolve() if getattr(args, "index_dir", None) else None
@@ -237,8 +234,7 @@ def cmd_drill(args: argparse.Namespace) -> None:
 
 
 def cmd_stats(args: argparse.Namespace) -> None:
-    from pathlib import Path
-
+    # Lazy import: BookIndex loads ~500MB embedding model
     from .embedder import BookIndex
 
     persist_dir = Path(args.index_dir).resolve() if getattr(args, "index_dir", None) else None
@@ -277,7 +273,11 @@ def main() -> None:
     # ingest-pdf
     p_ingest = sub.add_parser("ingest-pdf", help="Extract PDF to Markdown chapters and optionally build index")
     p_ingest.add_argument("pdf", help="Path to PDF file")
-    p_ingest.add_argument("--chapters-dir", default=None, help="Output directory for chapter Markdown files")
+    p_ingest.add_argument(
+        "--chapters-dir",
+        default=None,
+        help="Output directory for chapter Markdown files (default: <pdf_dir>/chapters)",
+    )
     p_ingest.add_argument("--skip-pages", type=int, default=12, help="Skip first N pages (front matter)")
     p_ingest.add_argument("--toc-page", type=int, default=11, help="Page number of table of contents (1-based)")
     p_ingest.add_argument("--index-dir", default=None, help="Index persistence directory (default: .book_index)")
@@ -293,7 +293,11 @@ def main() -> None:
     p_build = sub.add_parser("build", help="Build or rebuild the semantic index")
     p_build.add_argument("--force", action="store_true", help="Force full rebuild")
     p_build.add_argument("--index-dir", default=None, help="Index persistence directory (default: .book_index)")
-    p_build.add_argument("--chapters-dir", default=None, help="Chapters directory (default: chapters)")
+    p_build.add_argument(
+        "--chapters-dir",
+        default=None,
+        help="Chapters directory (default: project chapters/). When building after ingest-pdf, pass the same --chapters-dir used for ingest.",
+    )
     p_build.add_argument("--book-id", default=None, help="Book ID for act mapping (e.g. alice, last_pure_thing)")
     p_build.set_defaults(func=cmd_build)
 

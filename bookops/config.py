@@ -18,6 +18,7 @@ DEFAULT_CONFIG = {
     "paths": {
         "bookops_dir": ".bookops",
         "index_dir": ".bookops/index",
+        "semantic_index_dir": ".book_index",
         "snapshots_dir": ".bookops/snapshots",
         "issues_file": ".bookops/issues.json",
         "run_history_file": ".bookops/runs.json",
@@ -282,6 +283,7 @@ class RuntimeConfig:
     output_dir: Path
     bookops_dir: Path
     index_dir: Path
+    semantic_index_dir: Path
     snapshots_dir: Path
     issues_file: Path
     run_history_file: Path
@@ -327,6 +329,7 @@ def load_runtime_config(project_root: Path, config_path: Path | None = None, out
 
     bookops_dir = project_root / paths.get("bookops_dir", ".bookops")
     index_dir = project_root / paths.get("index_dir", ".bookops/index")
+    semantic_index_dir = project_root / paths.get("semantic_index_dir", ".book_index")
     snapshots_dir = project_root / paths.get("snapshots_dir", ".bookops/snapshots")
     issues_file = project_root / paths.get("issues_file", ".bookops/issues.json")
     run_history_file = project_root / paths.get("run_history_file", ".bookops/runs.json")
@@ -341,6 +344,7 @@ def load_runtime_config(project_root: Path, config_path: Path | None = None, out
         output_dir=out,
         bookops_dir=bookops_dir,
         index_dir=index_dir,
+        semantic_index_dir=semantic_index_dir,
         snapshots_dir=snapshots_dir,
         issues_file=issues_file,
         run_history_file=run_history_file,

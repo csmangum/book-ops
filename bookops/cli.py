@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import argparse
 import json
+import subprocess
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -198,9 +200,6 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     if args.command == "ingest-pdf":
-        import subprocess
-        import sys
-
         cmd = [
             sys.executable, "-m", "indexer", "ingest-pdf",
             str(Path(args.pdf).resolve()),

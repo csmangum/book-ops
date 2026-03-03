@@ -40,6 +40,11 @@ def _fix_hyphenation(text: str) -> str:
     """
     Rejoin words broken by hyphenation at line breaks.
     E.g. "some-\nthing" -> "something"
+
+    Limitation: Compound words like "well-known" that are broken at the hyphen
+    become "wellknown" (hyphen removed). This is an acceptable trade-off for
+    common PDF hyphenation artifacts; post-processing can restore known compounds
+    if needed.
     """
     # Match hyphen at end of line followed by newline and optional whitespace
     return re.sub(r"-\s*\n\s*", "", text)
@@ -93,15 +98,24 @@ _ALICE_TOC_RE = re.compile(
 )
 
 
-def _parse_alice_toc(toc_text: str) -> list[ChapterInfo]:
-    """Parse Alice TOC format: '1 Down the Rabbit-Hole 13'."""
+def _parse_alice_toc(
+    toc_text: str,
+    max_page: int | None = None,
+    max_chapter: int | None = None,
+) -> list[ChapterInfo]:
+    """Parse Alice TOC format: '1 Down the Rabbit-Hole 13'.
+
+    Bounds filter spurious matches. When None, uses permissive defaults
+    (max_page=9999, max_chapter=999) so longer books are not truncated.
+    """
+    max_page = max_page if max_page is not None else 9999
+    max_chapter = max_chapter if max_chapter is not None else 999
     chapters = []
     for m in _ALICE_TOC_RE.finditer(toc_text):
         num = int(m.group(1))
         title = m.group(2).strip()
         page = int(m.group(3))
-        # Filter: page number should be reasonable (13-100 for this book)
-        if 10 <= page <= 100 and 1 <= num <= 20:
+        if 1 <= page <= max_page and 1 <= num <= max_chapter:
             chapters.append(ChapterInfo(number=num, title=title, start_page=page))
     return chapters
 
@@ -118,17 +132,30 @@ def detect_chapters_from_pdf(
     skip_pages: int = 12,
     toc_page: int = 11,
     reader: PdfReader | None = None,
+    max_page: int | None = None,
+    max_chapter: int | None = None,
 ) -> list[ChapterInfo]:
     """
     Detect chapter boundaries from PDF.
     Uses TOC page if available, else scans for "Chapter N" headings.
+
+    max_page, max_chapter: bounds for TOC parsing. When None, derived from
+    PDF (max_page=page count, max_chapter=999) so longer books work.
     """
     if reader is None:
         reader = PdfReader(str(pdf_path))
+    n_pages = len(reader.pages)
+    effective_max_page = max_page if max_page is not None else n_pages
+    effective_max_chapter = max_chapter if max_chapter is not None else 999
+
     # Try TOC first (Alice has it on page 11)
-    if toc_page <= len(reader.pages):
+    if toc_page <= n_pages:
         toc_text = reader.pages[toc_page - 1].extract_text() or ""
-        chapters = _parse_alice_toc(toc_text)
+        chapters = _parse_alice_toc(
+            toc_text,
+            max_page=effective_max_page,
+            max_chapter=effective_max_chapter,
+        )
         if chapters:
             return chapters
 
@@ -164,8 +191,8 @@ def extract_chapter_text(
 
 
 def _slugify_title(title: str) -> str:
-    """Convert title to filename-safe slug, preserving hyphens."""
-    slug = re.sub(r"[^\w\s-]", "", title)
+    """Convert title to filename-safe slug, preserving hyphens and apostrophes."""
+    slug = re.sub(r"[^\w\s\-']", "", title)
     slug = re.sub(r"\s+", "_", slug).strip("_")
     return slug[:80]
 

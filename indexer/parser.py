@@ -8,22 +8,27 @@ Each unit carries metadata about its position in the hierarchy.
 from __future__ import annotations
 
 import re
+import warnings
 from dataclasses import dataclass
 from pathlib import Path
 
 import nltk
 
-from .book_config import get_act_map
+from .book_config import BOOK_ACT_RANGES, get_act_map
 
 CHAPTER_DIR = Path(__file__).resolve().parent.parent / "chapters"
 
-ACT_CHAPTER_RANGES: dict[str, tuple[int, int]] = {
-    "Prologue": (0, 0),
-    "Act I – The Hire": (1, 6),
-    "Act II – The Descent": (7, 18),
-    "Act III – The Gate": (19, 24),
-    "Epilogue": (25, 25),
-}
+# Default act ranges for last_pure_thing; book_config is source of truth
+ACT_CHAPTER_RANGES: dict[str, tuple[int, int]] = BOOK_ACT_RANGES.get(
+    "last_pure_thing",
+    {
+        "Prologue": (0, 0),
+        "Act I – The Hire": (1, 6),
+        "Act II – The Descent": (7, 18),
+        "Act III – The Gate": (19, 24),
+        "Epilogue": (25, 25),
+    },
+)
 
 ACT_MAP: dict[int, str] = {
     ch: act for act, (start, end) in ACT_CHAPTER_RANGES.items() for ch in range(start, end + 1)
@@ -261,7 +266,13 @@ def parse_all_chapters(
 
     act_map = get_act_map(book_id) if book_id else None
     if book_id and not act_map:
-        act_map = None  # Unknown book_id, fall back to default ACT_MAP
+        warnings.warn(
+            f"Unknown book_id {book_id!r}; falling back to default ACT_MAP (last_pure_thing). "
+            "Check spelling or add the book to indexer.book_config.BOOK_ACT_RANGES.",
+            UserWarning,
+            stacklevel=2,
+        )
+        act_map = None
 
     all_units: list[TextUnit] = []
     for f in files:
