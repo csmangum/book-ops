@@ -394,3 +394,127 @@ def artifact_project_timeline() -> dict[str, Any]:
 def artifact_project_motifs() -> dict[str, Any]:
     _project_root, output_dir = _api_context()
     return _read_artifact(output_dir / "project" / "motif-dashboard.json")
+
+
+# ---------------------------------------------------------------------------
+# Semantic search (indexer) — lazy-import BookIndex to avoid loading model at startup
+# ---------------------------------------------------------------------------
+
+
+def _semantic_index_context() -> tuple[Path, Path]:
+    """Return (chapters_dir, persist_dir) for the semantic index."""
+    project_root, _ = _api_context()
+    config = load_runtime_config(project_root=project_root)
+    persist_dir = project_root / ".book_index"
+    return config.chapters_dir, persist_dir
+
+
+_VALID_LEVELS = {"sentence", "paragraph", "scene", "chapter", "act"}
+
+
+def _validate_level(level: str) -> None:
+    """Raise ValueError if level is not in the allowed set."""
+    if level not in _VALID_LEVELS:
+        raise ValueError(
+            f"Invalid level {level!r}. Must be one of: {sorted(_VALID_LEVELS)}"
+        )
+
+
+@app.post("/search/semantic")
+def search_semantic(body: dict[str, Any]) -> dict[str, Any]:
+    """Semantic search at a given level."""
+    try:
+        level = body.get("level", "paragraph")
+        _validate_level(level)
+        chapters_dir, persist_dir = _semantic_index_context()
+        from indexer.embedder import BookIndex
+
+        idx = BookIndex(persist_dir=persist_dir, chapters_dir=chapters_dir)
+        where = {}
+        if body.get("act"):
+            where["act"] = body["act"]
+        if body.get("chapter_num") is not None:
+            where["chapter_num"] = body["chapter_num"]
+        if body.get("hybrid"):
+            results = idx.query_hybrid(
+                text=body["query"],
+                level=level,
+                n_results=body.get("n_results", 10),
+                where=where or None,
+            )
+        else:
+            results = idx.query(
+                text=body["query"],
+                level=level,
+                n_results=body.get("n_results", 10),
+                where=where or None,
+            )
+        return _envelope(ok=True, data={"results": results}, exit_code=0, stderr="")
+    except FileNotFoundError as e:
+        return _envelope(ok=False, data={}, exit_code=1, stderr=str(e))
+    except (ValueError, KeyError) as e:
+        return _envelope(ok=False, data={}, exit_code=1, stderr=str(e))
+
+
+@app.post("/search/semantic/drill")
+def search_semantic_drill(body: dict[str, Any]) -> dict[str, Any]:
+    """Hierarchical drill-down search."""
+    try:
+        top_level = body.get("top_level", "chapter")
+        drill_level = body.get("drill_level", "paragraph")
+        _validate_level(top_level)
+        _validate_level(drill_level)
+        chapters_dir, persist_dir = _semantic_index_context()
+        from indexer.embedder import BookIndex
+
+        idx = BookIndex(persist_dir=persist_dir, chapters_dir=chapters_dir)
+        results = idx.query_hierarchical(
+            text=body["query"],
+            top_level=top_level,
+            drill_level=drill_level,
+            n_top=body.get("n_top", 3),
+            n_drill=body.get("n_drill", 5),
+        )
+        return _envelope(ok=True, data={"results": results}, exit_code=0, stderr="")
+    except FileNotFoundError as e:
+        return _envelope(ok=False, data={}, exit_code=1, stderr=str(e))
+    except (ValueError, KeyError) as e:
+        return _envelope(ok=False, data={}, exit_code=1, stderr=str(e))
+
+
+@app.get("/search/semantic/stats")
+def search_semantic_stats() -> dict[str, Any]:
+    """Return index statistics."""
+    try:
+        chapters_dir, persist_dir = _semantic_index_context()
+        from indexer.embedder import BookIndex
+
+        idx = BookIndex(persist_dir=persist_dir, chapters_dir=chapters_dir)
+        counts = idx.stats()
+        if sum(counts.values()) == 0:
+            return _envelope(
+                ok=False,
+                data={},
+                exit_code=1,
+                stderr="Index is empty. Run POST /search/semantic/build first.",
+            )
+        return _envelope(ok=True, data={"counts": counts}, exit_code=0, stderr="")
+    except FileNotFoundError as e:
+        return _envelope(ok=False, data={}, exit_code=1, stderr=str(e))
+
+
+@app.post("/search/semantic/build")
+def search_semantic_build(body: dict[str, Any] | None = None) -> dict[str, Any]:
+    """Build or rebuild the semantic index."""
+    try:
+        chapters_dir, persist_dir = _semantic_index_context()
+        from indexer.embedder import BookIndex
+
+        idx = BookIndex(persist_dir=persist_dir, chapters_dir=chapters_dir)
+        body = body or {}
+        counts = idx.build(force=bool(body.get("force", False)))
+        return _envelope(ok=True, data={"counts": counts}, exit_code=0, stderr="")
+    except FileNotFoundError as e:
+        return _envelope(ok=False, data={}, exit_code=1, stderr=str(e))
+    except (ValueError, KeyError) as e:
+        return _envelope(ok=False, data={}, exit_code=1, stderr=str(e))
