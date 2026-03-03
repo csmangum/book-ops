@@ -58,6 +58,8 @@ def build_parser() -> argparse.ArgumentParser:
     p_ingest.add_argument("pdf", help="Path to PDF file")
     p_ingest.add_argument("--chapters-dir", default=None, help="Output directory for chapter Markdown files")
     p_ingest.add_argument("--build", action="store_true", help="Run indexer build after ingest")
+    p_ingest.add_argument("--skip-pages", type=int, default=None, help="Skip first N pages (front matter)")
+    p_ingest.add_argument("--toc-page", type=int, default=None, help="Page number of table of contents (1-based)")
 
     p_template = sub.add_parser("template", help="Template operations")
     p_template_sub = p_template.add_subparsers(dest="template_cmd")
@@ -205,6 +207,10 @@ def main(argv: list[str] | None = None) -> int:
             cmd.extend(["--chapters-dir", str(Path(args.chapters_dir).resolve())])
         if getattr(args, "build", False):
             cmd.append("--build")
+        if getattr(args, "skip_pages", None) is not None:
+            cmd.extend(["--skip-pages", str(args.skip_pages)])
+        if getattr(args, "toc_page", None) is not None:
+            cmd.extend(["--toc-page", str(args.toc_page)])
         return subprocess.run(cmd).returncode
 
     if args.command == "template":

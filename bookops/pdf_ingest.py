@@ -45,7 +45,7 @@ def _fix_hyphenation(text: str) -> str:
     return re.sub(r"-\s*\n\s*", "", text)
 
 
-def _strip_page_headers(text: str, chapter_num: int | None = None) -> str:
+def _strip_page_headers(text: str) -> str:
     """
     Remove running headers like "14 CHAPTER 1. DOWN THE RABBIT-HOLE" and standalone page numbers.
     """
@@ -210,7 +210,6 @@ def ingest_pdf_to_chapters(
         paragraphs = re.split(r"\n\s*\n", text)
         body = "\n\n".join(p.strip() for p in paragraphs if p.strip())
 
-        filename = f"{ch.number}_{ch.title}.md"
         # Sanitize filename for filesystem
         safe_title = _slugify_title(ch.title) or f"chapter-{ch.number}"
         filename = f"{ch.number}_{safe_title}.md"
