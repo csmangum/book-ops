@@ -402,6 +402,7 @@ class TestCrossLevelAlignment:
         """
         import nltk
         import re as _re
+        from indexer.parser import _DEGENERATE_SENTENCE_RE
 
         by_para: dict[tuple, int] = Counter()
         for s in units_by_level["sentence"]:
@@ -411,7 +412,9 @@ class TestCrossLevelAlignment:
         for p in units_by_level["paragraph"]:
             key = (p.chapter_num, p.scene_idx, p.paragraph_idx)
             clean = _re.sub(r"\s+", " ", p.text).strip()
-            expected = len(nltk.sent_tokenize(clean)) if clean else 0
+            raw = nltk.sent_tokenize(clean) if clean else []
+            filtered = [s for s in raw if not _DEGENERATE_SENTENCE_RE.match(s)]
+            expected = len(filtered)
             actual = by_para.get(key, 0)
             if actual != expected:
                 failures.append(

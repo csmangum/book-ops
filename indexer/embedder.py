@@ -320,9 +320,9 @@ class BookIndex:
         within those chapters.
         """
         HIERARCHY: dict[str, list[str]] = {
-            "act": ["chapter"],
-            "chapter": ["scene"],
-            "scene": ["paragraph"],
+            "act": ["chapter", "scene", "paragraph", "sentence"],
+            "chapter": ["scene", "paragraph", "sentence"],
+            "scene": ["paragraph", "sentence"],
             "paragraph": ["sentence"],
         }
         valid_drill = HIERARCHY.get(top_level, [])
