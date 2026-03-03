@@ -12,6 +12,7 @@ To run integration tests locally::
 
 import os
 import pytest
+import nltk
 
 
 def pytest_configure(config: pytest.Config) -> None:
@@ -33,3 +34,13 @@ def pytest_collection_modifyitems(
     for item in items:
         if "integration" in item.keywords:
             item.add_marker(skip_integration)
+
+
+@pytest.fixture(scope="session", autouse=True)
+def ensure_nltk_data():
+    """Download NLTK punkt data once per test session if not already present."""
+    try:
+        nltk.sent_tokenize("Test.")
+    except LookupError:
+        nltk.download("punkt", quiet=True)
+        nltk.download("punkt_tab", quiet=True)

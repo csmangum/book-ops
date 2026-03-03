@@ -409,10 +409,23 @@ def _semantic_index_context() -> tuple[Path, Path]:
     return config.chapters_dir, persist_dir
 
 
+_VALID_LEVELS = {"sentence", "paragraph", "scene", "chapter", "act"}
+
+
+def _validate_level(level: str) -> None:
+    """Raise ValueError if level is not in the allowed set."""
+    if level not in _VALID_LEVELS:
+        raise ValueError(
+            f"Invalid level {level!r}. Must be one of: {sorted(_VALID_LEVELS)}"
+        )
+
+
 @app.post("/search/semantic")
 def search_semantic(body: dict[str, Any]) -> dict[str, Any]:
     """Semantic search at a given level."""
     try:
+        level = body.get("level", "paragraph")
+        _validate_level(level)
         chapters_dir, persist_dir = _semantic_index_context()
         from indexer.embedder import BookIndex
 
@@ -425,14 +438,14 @@ def search_semantic(body: dict[str, Any]) -> dict[str, Any]:
         if body.get("hybrid"):
             results = idx.query_hybrid(
                 text=body["query"],
-                level=body.get("level", "paragraph"),
+                level=level,
                 n_results=body.get("n_results", 10),
                 where=where or None,
             )
         else:
             results = idx.query(
                 text=body["query"],
-                level=body.get("level", "paragraph"),
+                level=level,
                 n_results=body.get("n_results", 10),
                 where=where or None,
             )
@@ -447,14 +460,18 @@ def search_semantic(body: dict[str, Any]) -> dict[str, Any]:
 def search_semantic_drill(body: dict[str, Any]) -> dict[str, Any]:
     """Hierarchical drill-down search."""
     try:
+        top_level = body.get("top_level", "chapter")
+        drill_level = body.get("drill_level", "paragraph")
+        _validate_level(top_level)
+        _validate_level(drill_level)
         chapters_dir, persist_dir = _semantic_index_context()
         from indexer.embedder import BookIndex
 
         idx = BookIndex(persist_dir=persist_dir, chapters_dir=chapters_dir)
         results = idx.query_hierarchical(
             text=body["query"],
-            top_level=body.get("top_level", "chapter"),
-            drill_level=body.get("drill_level", "paragraph"),
+            top_level=top_level,
+            drill_level=drill_level,
             n_top=body.get("n_top", 3),
             n_drill=body.get("n_drill", 5),
         )
