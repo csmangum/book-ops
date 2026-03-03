@@ -138,3 +138,20 @@ class TestFullParse:
         assert "chapter_num" in meta
         assert "chapter_title" in meta
         assert "source_file" in meta
+
+
+@pytest.mark.skipif(
+    not (CHAPTER_DIR.parent / "chapters_alice").exists()
+    or not list((CHAPTER_DIR.parent / "chapters_alice").glob("*.md")),
+    reason="chapters_alice with .md files required",
+)
+def test_parse_alice_with_book_id():
+    """Parse Alice chapters with book_id=alice uses Full Book act."""
+    from pathlib import Path
+
+    alice_dir = CHAPTER_DIR.parent / "chapters_alice"
+    units = parse_all_chapters(chapters_dir=alice_dir, book_id="alice")
+    chapter_units = [u for u in units if u.level == "chapter"]
+    assert len(chapter_units) == 12
+    for u in chapter_units:
+        assert u.act == "Full Book"
