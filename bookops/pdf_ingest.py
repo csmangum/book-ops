@@ -77,16 +77,6 @@ def extract_text_from_pdf(pdf_path: Path) -> str:
     return "\n\n".join(parts)
 
 
-def extract_text_with_structure(pdf_path: Path) -> str:
-    """
-    Extract text and apply hyphenation fix and paragraph preservation.
-    Double newlines (page breaks) are preserved as paragraph cues.
-    """
-    full = extract_text_from_pdf(pdf_path)
-    fixed = _fix_hyphenation(full)
-    return fixed
-
-
 @dataclass
 class ChapterInfo:
     """Chapter boundary info from TOC or heading detection."""
@@ -170,10 +160,10 @@ def extract_chapter_text(
 
 
 def _slugify_title(title: str) -> str:
-    """Convert title to filename-safe slug."""
+    """Convert title to filename-safe slug, preserving hyphens."""
     slug = re.sub(r"[^\w\s-]", "", title)
-    slug = re.sub(r"[-\s]+", " ", slug).strip()
-    return slug.replace(" ", "-")[:80]
+    slug = re.sub(r"\s+", "_", slug).strip("_")
+    return slug[:80]
 
 
 def ingest_pdf_to_chapters(

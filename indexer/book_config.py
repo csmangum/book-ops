@@ -7,11 +7,6 @@ act names for each chapter.
 
 from __future__ import annotations
 
-from pathlib import Path
-
-# Default chapters dir (for The Last Pure Thing)
-CHAPTER_DIR = Path(__file__).resolve().parent.parent / "chapters"
-
 # Book ID -> act chapter ranges
 # Format: { "act_name": (start_chapter, end_chapter) } inclusive
 BOOK_ACT_RANGES: dict[str, dict[str, tuple[int, int]]] = {

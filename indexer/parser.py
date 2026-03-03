@@ -87,11 +87,11 @@ def _chapter_title_from_content(text: str) -> str | None:
 
 
 def _chapter_title_from_filename(filename: str) -> str:
-    """Extract chapter title from filename (e.g. 7_The-Egg-and-the-Bullet.md -> The Egg and the Bullet)."""
+    """Extract chapter title from filename (e.g. 7_The_Rabbit-Hole.md -> The Rabbit-Hole)."""
     base = filename.replace(".md", "")
     if "_" in base:
         title = base.split("_", 1)[-1].strip()
-        return title.replace("-", " ")
+        return title.replace("_", " ")
     return base.strip()
 
 
