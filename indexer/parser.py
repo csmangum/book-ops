@@ -113,12 +113,26 @@ def _split_paragraphs(scene_text: str) -> list[str]:
 
 
 def _ensure_nltk_punkt() -> None:
-    """Ensure the NLTK sentence tokenizer data is available. Auto-downloads if missing."""
+    """Ensure the NLTK sentence tokenizer data is available.
+
+    Raises RuntimeError if data is missing, directing users to run
+    'python -m indexer setup' or set INDEXER_AUTO_DOWNLOAD=1 to allow
+    automatic downloads.
+    """
+    import os
+
     try:
         nltk.sent_tokenize("Test.")
     except LookupError:
-        nltk.download("punkt", quiet=True)
-        nltk.download("punkt_tab", quiet=True)
+        if os.environ.get("INDEXER_AUTO_DOWNLOAD", "").strip() == "1":
+            nltk.download("punkt", quiet=True)
+            nltk.download("punkt_tab", quiet=True)
+        else:
+            raise RuntimeError(
+                "NLTK sentence tokenizer data is missing. "
+                "Run 'python -m indexer setup' to download it, "
+                "or set INDEXER_AUTO_DOWNLOAD=1 to allow automatic downloads."
+            )
 
 
 # Sentences matching this pattern are markdown artifacts (e.g. italic markers)

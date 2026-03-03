@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import hashlib
 import pickle
+from copy import deepcopy
 from pathlib import Path
 
 import chromadb
@@ -48,7 +49,8 @@ def _sanitize_metadata(meta: dict) -> dict:
 
 def _tokenize_for_bm25(text: str) -> list[str]:
     """Simple tokenizer for BM25: lowercase, split on non-alphanumeric."""
-    return [t.lower() for t in text.split() if t]
+    import re
+    return [t.lower() for t in re.split(r"\W+", text) if t]
 
 
 def _content_hash(units: list[TextUnit]) -> str:
@@ -125,16 +127,19 @@ class BookIndex:
             for level, units in by_level.items():
                 col = self._get_collection(level)
                 # Clear existing data by deleting and recreating
-                self.client.delete_collection(f"book_{level}")
+                self.client.delete_collection(name=f"book_{level}")
                 self._collections.pop(level, None)
                 col = self._get_collection(level)
 
                 texts = []
+                bm25_texts = []
                 for u in units:
-                    t = u.text
+                    full_text = u.text
+                    bm25_texts.append(full_text)
                     if level in ("chapter", "act"):
-                        t = _truncate_for_embedding(t)
-                    texts.append(t)
+                        texts.append(_truncate_for_embedding(full_text))
+                    else:
+                        texts.append(full_text)
 
                 batch_size = 64
                 for i in range(0, len(units), batch_size):
@@ -150,8 +155,8 @@ class BookIndex:
 
                 counts[level] = col.count()
 
-                # Build and persist BM25 index for hybrid search
-                tokenized = [_tokenize_for_bm25(t) for t in texts]
+                # Build and persist BM25 index for hybrid search using full (untruncated) texts
+                tokenized = [_tokenize_for_bm25(t) for t in bm25_texts]
                 bm25 = BM25Okapi(tokenized)
                 bm25_path = self.persist_dir / f"bm25_{level}.pkl"
                 with open(bm25_path, "wb") as f:
@@ -159,7 +164,7 @@ class BookIndex:
                         {
                             "bm25": bm25,
                             "ids": [u.id for u in units],
-                            "texts": texts,
+                            "texts": bm25_texts,
                             "metadatas": [_sanitize_metadata(u.metadata) for u in units],
                         },
                         f,
@@ -268,7 +273,7 @@ class BookIndex:
                 "id": ids[i],
                 "text": texts[i],
                 "metadata": metadatas[i],
-                "distance": 0.0,
+                "bm25_score": float(scores[i]),
             }
             for i in top_indices
             if scores[i] > 0
@@ -299,6 +304,8 @@ class BookIndex:
                 meta = r["metadata"]
                 if not all(meta.get(k) == v for k, v in where.items()):
                     continue
+            r = deepcopy(r)  # deep copy to avoid mutating cached nested data
+            r["rrf_score"] = rrf_scores[doc_id]
             merged.append(r)
             if len(merged) >= n_results:
                 break

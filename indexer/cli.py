@@ -2,7 +2,7 @@
 CLI for multi-level semantic book indexing.
 
 Usage:
-    python -m indexer setup              Download NLTK data (punkt) if needed
+    python -m indexer setup              Download NLTK data (punkt, punkt_tab) if needed
     python -m indexer build              Build/rebuild the index
     python -m indexer search "query"     Search at paragraph level (default)
     python -m indexer search "query" -l sentence -n 20
@@ -43,6 +43,7 @@ def cmd_setup(args: argparse.Namespace) -> None:
     """Download NLTK punkt tokenizer data required for sentence splitting."""
     with console.status("[bold green]Downloading NLTK punkt tokenizer..."):
         nltk.download("punkt")
+        nltk.download("punkt_tab")
     console.print("[green]NLTK data ready. You can run 'python -m indexer build'.[/green]")
 
 
@@ -97,7 +98,13 @@ def cmd_search(args: argparse.Namespace) -> None:
 
     for i, r in enumerate(results, 1):
         meta = r["metadata"]
-        score = 1 - r["distance"]  # cosine distance -> similarity
+        if getattr(args, "hybrid", False) and "rrf_score" in r:
+            score_display = f"rrf: {r['rrf_score']:.4f}"
+            high_score = r["rrf_score"] > 0.02
+        else:
+            score = 1 - r["distance"]  # cosine distance -> similarity
+            score_display = f"sim: {score:.3f}"
+            high_score = score > 0.5
 
         header = (
             f"[{i}] Ch {meta['chapter_num']}: {meta['chapter_title']} "
@@ -107,7 +114,7 @@ def cmd_search(args: argparse.Namespace) -> None:
             header += f" | para {meta['paragraph_idx']}"
         if args.level == "sentence":
             header += f" | sent {meta['sentence_idx']}"
-        header += f"  [dim](sim: {score:.3f})[/dim]"
+        header += f"  [dim]({score_display})[/dim]"
 
         text_display = r["text"]
         if len(text_display) > 500 and args.level not in ("sentence",):
@@ -117,7 +124,7 @@ def cmd_search(args: argparse.Namespace) -> None:
             text_display,
             title=header,
             title_align="left",
-            border_style="blue" if score > 0.5 else "dim",
+            border_style="blue" if high_score else "dim",
             width=min(console.width, 120),
         ))
 
