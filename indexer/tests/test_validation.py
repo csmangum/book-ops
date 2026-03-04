@@ -21,15 +21,16 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from indexer.parser import (
-    TextUnit,
-    parse_all_chapters,
-    build_act_units,
-    ACT_MAP,
-    ACT_CHAPTER_RANGES,
-    CHAPTER_DIR,
-)
+from indexer.book_config import get_act_chapter_ranges, get_act_map
 from indexer.embedder import BookIndex
+from indexer.parser import (
+    ACT_CHAPTER_RANGES,
+    ACT_MAP,
+    CHAPTER_DIR,
+    TextUnit,
+    build_act_units,
+    parse_all_chapters,
+)
 
 LEVELS = ("sentence", "paragraph", "scene", "chapter", "act")
 EMBEDDING_DIM = 768
@@ -43,12 +44,12 @@ EMBEDDING_DIM = 768
 def all_units() -> list[TextUnit]:
     if not CHAPTER_DIR.exists() or not list(CHAPTER_DIR.glob("*.md")):
         pytest.skip("Chapters directory with .md files required")
-    return parse_all_chapters()
+    return parse_all_chapters(book_id="alice")
 
 
 @pytest.fixture(scope="module")
 def act_units(all_units) -> list[TextUnit]:
-    return build_act_units(all_units)
+    return build_act_units(all_units, act_ranges=get_act_chapter_ranges("alice"))
 
 
 @pytest.fixture(scope="module")
@@ -63,7 +64,7 @@ def units_by_level(all_units, act_units) -> dict[str, list[TextUnit]]:
 @pytest.fixture(scope="module")
 def index(all_units) -> BookIndex:
     tmpdir = Path(tempfile.mkdtemp())
-    idx = BookIndex(persist_dir=tmpdir, chapters_dir=CHAPTER_DIR)
+    idx = BookIndex(persist_dir=tmpdir, chapters_dir=CHAPTER_DIR, book_id="alice")
     idx.build(force=True)
     yield idx
     shutil.rmtree(tmpdir, ignore_errors=True)
@@ -118,7 +119,7 @@ class TestStructuralIntegrity:
 
     def test_every_chapter_maps_to_act(self, units_by_level):
         """Every chapter's act label is a valid act name."""
-        valid_acts = set(ACT_CHAPTER_RANGES.keys())
+        valid_acts = set(get_act_chapter_ranges("alice").keys())
         for ch in units_by_level["chapter"]:
             assert ch.act in valid_acts, (
                 f"Chapter {ch.chapter_num} has invalid act '{ch.act}'"
@@ -162,9 +163,9 @@ class TestStructuralIntegrity:
             )
 
     def test_no_chapter_gaps(self, units_by_level):
-        """Chapter numbers 0–25 are all present with no gaps."""
+        """Chapter numbers 1–12 (Alice) are all present with no gaps."""
         nums = sorted(u.chapter_num for u in units_by_level["chapter"])
-        assert nums == list(range(26))
+        assert nums == list(range(1, 13))
 
     def test_all_source_files_exist(self, all_units):
         """Every source_file reference points to a real file."""
@@ -270,12 +271,13 @@ class TestMetadataConsistency:
     """Act labels, chapter numbers, and file references are all internally consistent."""
 
     def test_act_label_matches_act_map(self, all_units):
-        """Every unit's act label matches ACT_MAP for its chapter number."""
+        """Every unit's act label matches alice act map for its chapter number."""
+        alice_map = get_act_map("alice")
         for u in all_units:
-            expected_act = ACT_MAP[u.chapter_num]
+            expected_act = alice_map[u.chapter_num]
             assert u.act == expected_act, (
                 f"Unit {u.id} (ch{u.chapter_num}) has act '{u.act}' "
-                f"but ACT_MAP says '{expected_act}'"
+                f"but alice act map says '{expected_act}'"
             )
 
     def test_source_file_matches_chapter_number(self, all_units):
@@ -323,8 +325,9 @@ class TestMetadataConsistency:
 
     def test_act_unit_chapter_range_metadata(self, act_units):
         """Act units have correct chapter range in their title."""
+        alice_ranges = get_act_chapter_ranges("alice")
         for a in act_units:
-            start, end = ACT_CHAPTER_RANGES[a.act]
+            start, end = alice_ranges[a.act]
             assert str(start) in a.chapter_title
             assert str(end) in a.chapter_title
 
@@ -561,8 +564,8 @@ class TestSemanticCoherence:
             total_neighbors += k
 
         observed_rate = same_chapter_hits / total_neighbors
-        # Baseline: if neighbors were random, ~1/26 ≈ 3.8% would share a chapter
-        baseline = 1.0 / 26
+        num_chapters = len(set(chapters))
+        baseline = 1.0 / num_chapters
         assert observed_rate > baseline * 2, (
             f"Same-chapter neighbor rate ({observed_rate:.3f}) should meaningfully "
             f"exceed random baseline ({baseline:.3f})"

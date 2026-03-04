@@ -1,17 +1,19 @@
 """Tests for the manuscript parser."""
 
 import pytest
+
+from indexer.book_config import get_act_chapter_ranges
 from indexer.parser import (
-    parse_all_chapters,
-    build_act_units,
-    _split_scenes,
-    _split_paragraphs,
-    _split_sentences,
-    _strip_header,
-    _chapter_number,
-    _chapter_title_from_filename,
     ACT_MAP,
     CHAPTER_DIR,
+    _chapter_number,
+    _chapter_title_from_filename,
+    _split_paragraphs,
+    _split_scenes,
+    _split_sentences,
+    _strip_header,
+    build_act_units,
+    parse_all_chapters,
 )
 
 
@@ -114,9 +116,11 @@ def test_parse_all_chapters_warns_on_unknown_book_id(tmp_path):
     reason="Chapters directory with .md files required",
 )
 class TestFullParse:
+    """Tests run against the project's chapters/ (Alice, 12 chapters)."""
+
     @pytest.fixture(scope="class")
     def all_units(self):
-        return parse_all_chapters()
+        return parse_all_chapters(book_id="alice")
 
     def test_has_all_levels(self, all_units):
         levels = {u.level for u in all_units}
@@ -124,24 +128,20 @@ class TestFullParse:
 
     def test_has_all_chapters(self, all_units):
         chapter_nums = {u.chapter_num for u in all_units if u.level == "chapter"}
-        assert chapter_nums == set(range(26))
+        assert chapter_nums == set(range(1, 13))
 
     def test_sentence_count_reasonable(self, all_units):
         sentences = [u for u in all_units if u.level == "sentence"]
-        assert len(sentences) > 5000
+        assert len(sentences) > 500
 
     def test_paragraph_count_reasonable(self, all_units):
         paragraphs = [u for u in all_units if u.level == "paragraph"]
-        assert len(paragraphs) > 500
+        assert len(paragraphs) > 50
 
     def test_act_units(self, all_units):
-        acts = build_act_units(all_units)
+        acts = build_act_units(all_units, act_ranges=get_act_chapter_ranges("alice"))
         act_names = {a.act for a in acts}
-        assert "Prologue" in act_names
-        assert "Act I – The Hire" in act_names
-        assert "Act II – The Descent" in act_names
-        assert "Act III – The Gate" in act_names
-        assert "Epilogue" in act_names
+        assert "Full Book" in act_names
 
     def test_metadata_structure(self, all_units):
         u = all_units[0]
@@ -154,14 +154,12 @@ class TestFullParse:
 
 
 @pytest.mark.skipif(
-    not (CHAPTER_DIR.parent / "chapters_alice").exists()
-    or not list((CHAPTER_DIR.parent / "chapters_alice").glob("*.md")),
-    reason="chapters_alice with .md files required",
+    not CHAPTER_DIR.exists() or not list(CHAPTER_DIR.glob("*.md")),
+    reason="Chapters directory with .md files required",
 )
 def test_parse_alice_with_book_id():
     """Parse Alice chapters with book_id=alice uses Full Book act."""
-    alice_dir = CHAPTER_DIR.parent / "chapters_alice"
-    units = parse_all_chapters(chapters_dir=alice_dir, book_id="alice")
+    units = parse_all_chapters(chapters_dir=CHAPTER_DIR, book_id="alice")
     chapter_units = [u for u in units if u.level == "chapter"]
     assert len(chapter_units) == 12
     for u in chapter_units:
