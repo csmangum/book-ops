@@ -27,8 +27,6 @@ voice, ‘Why the fact is, you see, Miss, this here ought to have been a RED
 rose-tree, and we put a white one in by mistake; and if the Queen was to
 find it out, we should all have our heads cut off, you know. So you see,
 Miss, we’re doing our best, afore she comes, to–’ At this moment Five, who
-
-60 CHAPTER 8. THE QUEEN’S CROQUET-GROUND
 had been anxiously looking across the garden, called out ‘The Queen! The
 Queen!’ and the three gardeners instantly threw themselves flat upon their
 faces. There was a sound of many footsteps, and Alice looked round, eager
@@ -105,8 +103,6 @@ mouth close to her ear, and whispered ‘She’s under sentence of execution.’
 ‘What for?’ said Alice.
 ‘Did you say “What a pity!”?’ the Rabbit asked.
 
-62 CHAPTER 8. THE QUEEN’S CROQUET-GROUND
-‘No, I didn’t,’ said Alice: ‘I don’t think it’s at all a pity. I said “What
 for?”’
 ‘She boxed the Queen’s ears–’ the Rabbit began. Alice gave a little scream
 of laughter. ‘Oh, hush!’ the Rabbit whispered in a frightened tone. ‘The
@@ -181,11 +177,7 @@ The Queen had only one way of settling all difficulties, great or small.
 ‘Off with his head!’ she said, without even looking round.
 ‘I’ll fetch the executioner myself,’ said the King eagerly, and he hurried
 off.
-
-64 CHAPTER 8. THE QUEEN’S CROQUET-GROUND
 Alice thought she might as well go back, and see how the game was going
-on, as she heard the Queen’s voice in the distance, screaming with passion.
-She had already heard her sentence three of the players to be executed for
 having missed their turns, and she did not like the look of things at all, as
 the game was in such confusion that she never knew whether it was her turn
 or not. So she went in search of her hedgehog.
@@ -223,5 +215,3 @@ time he had come back with the Duchess, it had entirely disappeared; so the
 
 King and the executioner ran wildly up and down looking for it, while the
 rest of the party went back to the game.
-
-66 CHAPTER 8. THE QUEEN’S CROQUET-GROUND

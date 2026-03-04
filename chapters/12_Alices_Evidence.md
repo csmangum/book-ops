@@ -27,8 +27,6 @@ the Lizard, who seemed too much overcome to do anything but sit with its
 mouth open, gazing up into the roof of the court.
 ‘What do you know about this business?’ the King said to Alice.
 ‘Nothing,’ said Alice.
-
-88 CHAPTER 12. ALICE’S EVIDENCE
 ‘Nothing WHATEVER?’ persisted the King.
 ‘Nothing whatever,’ said Alice.
 ‘That’s very important,’ the King said, turning to the jury. They were
@@ -105,8 +103,6 @@ Involved in this affair,
 He trusts to you to set them free,
 Exactly as we were.
 
-90 CHAPTER 12. ALICE’S EVIDENCE
-My notion was that you had been
 (Before she had this fit)
 An obstacle that came between
 Him, and ourselves, and it.
@@ -182,8 +178,6 @@ her eyes–and still as she listened, or seemed to listen, the whole place aroun
 her became alive the strange creatures of her little sister’s dream.
 The long grass rustled at her feet as the White Rabbit hurried by–the
 
-92 CHAPTER 12. ALICE’S EVIDENCE
-frightened Mouse splashed his way through the neighbouring pool–she could
 hear the rattle of the teacups as the March Hare and his friends shared
 their never-ending meal, and the shrill voice of the Queen ordering off her
 unfortunate guests to execution–once more the pig-baby was sneezing on

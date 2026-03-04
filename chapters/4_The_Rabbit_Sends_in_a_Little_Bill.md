@@ -2,8 +2,6 @@
 
 The Rabbit Sends in a Little Bill
 
-The Rabbit Sends in a Little
-Bill
 It was the White Rabbit, trotting slowly back again, and looking anxiously
 about as it went, as if it had lost something; and she heard it muttering
 to itself ‘The Duchess! The Duchess! Oh my dear paws! Oh my fur and

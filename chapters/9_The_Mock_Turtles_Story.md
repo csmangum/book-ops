@@ -27,8 +27,6 @@ was VERY ugly; and secondly, because she was exactly the right height to
 rest her chin upon Alice’s shoulder, and it was an uncomfortably sharp chin.
 However, she did not like to be rude, so she bore it as well as she could.
 ‘The game’s going on rather better now,’ she said, by way of keeping up
-
-68 CHAPTER 9. THE MOCK TURTLE’S STORY
 the conversation a little.
 ‘’Tis so,’ said the Duchess: ‘and the moral of that is–”Oh, ’tis love, ’tis
 love, that makes the world go round!”’
@@ -103,8 +101,6 @@ seen the Mock Turtle yet?’
 As they walked off together, Alice heard the King say in a low voice,
 to the company generally, ‘You are all pardoned.’ ‘Come, THAT’S a good
 
-70 CHAPTER 9. THE MOCK TURTLE’S STORY
-thing!’ she said to herself, for she had felt quite unhappy at the number of
 executions the Queen had ordered.
 They very soon came upon a Gryphon, lying fast asleep in the sun. (IF
 you don’t know what a Gryphon is, look at the picture.) ‘Up, lazy thing!’
@@ -181,8 +177,6 @@ The Gryphon lifted up both its paws in surprise. ‘What! Never heard of
 uglifying!’ it exclaimed. ‘You know what to beautify is, I suppose?’
 ‘Yes,’ said Alice doubtfully: ‘it means–to–make–anything–prettier.’
 
-72 CHAPTER 9. THE MOCK TURTLE’S STORY
-‘Well, then,’ the Gryphon went on, ‘if you don’t know what to uglify is,
 you ARE a simpleton.’
 Alice did not feel encouraged to ask any more questions about it, so she
 turned to the Mock Turtle, and said ‘What else had you to learn?’

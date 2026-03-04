@@ -27,8 +27,6 @@ and rightly too, that very few little girls of her age knew the meaning of it
 at all. However, ‘jury-men’ would have done just as well.
 The twelve jurors were all writing very busily on slates. ‘What are they
 doing?’ Alice whispered to the Gryphon. ‘They can’t have anything to put
-
-82 CHAPTER 11. WHO STOLE THE TARTS?
 down yet, before the trial’s begun.’
 ‘They’re putting down their names,’ the Gryphon whispered in reply, ‘for
 fear they should forget them before the end of the trial.’
@@ -104,8 +102,6 @@ side of the court.
 All this time the Queen had never left off staring at the Hatter, and, just
 as the Dormouse crossed the court, she said to one of the officers of the court,
 
-84 CHAPTER 11. WHO STOLE THE TARTS?
-‘Bring me the list of the singers in the last concert!’ on which the wretched
 Hatter trembled so, that he shook both his shoes off.
 ‘Give your evidence,’ the King repeated angrily, ‘or I’ll have you executed,
 whether you’re nervous or not.’
@@ -182,4 +178,3 @@ curious to see what the next witness would be like, ‘–for they haven’t got
 much evidence YET,’ she said to herself. Imagine her surprise, when the
 White Rabbit read out, at the top of his shrill little voice, the name ‘Alice!’
 
-86 CHAPTER 11. WHO STOLE THE TARTS?
