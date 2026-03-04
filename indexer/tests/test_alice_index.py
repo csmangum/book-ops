@@ -17,7 +17,6 @@ from indexer.embedder import BookIndex, INDEX_DIR
 
 # Project root: indexer/embedder.py -> indexer/ -> project root
 PROJECT_ROOT = INDEX_DIR.parent
-ALICE_CHAPTERS = PROJECT_ROOT / "chapters"
 ALICE_INDEX = PROJECT_ROOT / ".book_index"
 
 
